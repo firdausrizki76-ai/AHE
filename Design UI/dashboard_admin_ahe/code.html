@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AHE Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Quicksand:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #f9f9ff;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-bright": "#f9f9ff",
+                      "outline": "#906f70",
+                      "on-surface-variant": "#5c3f40",
+                      "tertiary-container": "#717476",
+                      "surface-variant": "#d8e3fb",
+                      "surface-container-low": "#f0f3ff",
+                      "on-primary-container": "#fffaf9",
+                      "primary-fixed": "#ffdada",
+                      "error": "#ba1a1a",
+                      "on-secondary": "#ffffff",
+                      "inverse-surface": "#263143",
+                      "surface-container-high": "#dee8ff",
+                      "on-error": "#ffffff",
+                      "surface-dim": "#cfdaf2",
+                      "secondary": "#712ae2",
+                      "tertiary-fixed": "#e0e3e5",
+                      "surface-container": "#e7eeff",
+                      "on-secondary-fixed-variant": "#5a00c6",
+                      "surface-container-highest": "#d8e3fb",
+                      "on-tertiary-fixed-variant": "#444749",
+                      "surface-tint": "#be0037",
+                      "on-secondary-fixed": "#25005a",
+                      "tertiary-fixed-dim": "#c4c7c9",
+                      "on-primary-fixed": "#40000c",
+                      "secondary-fixed-dim": "#d2bbff",
+                      "on-primary-fixed-variant": "#920028",
+                      "on-tertiary-fixed": "#191c1e",
+                      "on-tertiary-container": "#f9fbfd",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-container": "#fffbff",
+                      "primary-container": "#e11d48",
+                      "background": "#f9f9ff",
+                      "surface": "#f9f9ff",
+                      "primary": "#b80035",
+                      "outline-variant": "#e5bdbe",
+                      "on-surface": "#111c2d",
+                      "primary-fixed-dim": "#ffb3b6",
+                      "inverse-on-surface": "#ecf1ff",
+                      "error-container": "#ffdad6",
+                      "on-error-container": "#93000a",
+                      "on-background": "#111c2d",
+                      "tertiary": "#585c5d",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed": "#eaddff",
+                      "secondary-container": "#8a4cfc",
+                      "on-primary": "#ffffff",
+                      "inverse-primary": "#ffb3b6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "16px",
+                      "xl": "24px",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "max-width": "1440px",
+                      "xs": "4px",
+                      "sm": "12px",
+                      "md": "24px",
+                      "xl": "64px",
+                      "margin": "32px",
+                      "lg": "40px",
+                      "gutter": "24px",
+                      "base": "8px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Plus Jakarta Sans"],
+                      "body-md": ["Quicksand"],
+                      "headline-xl": ["Plus Jakarta Sans"],
+                      "headline-sm": ["Plus Jakarta Sans"],
+                      "body-sm": ["Quicksand"],
+                      "body-lg": ["Quicksand"],
+                      "label-sm": ["Plus Jakarta Sans"],
+                      "label-md": ["Plus Jakarta Sans"],
+                      "headline-md": ["Plus Jakarta Sans"]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="text-on-surface">
+<!-- Side Navigation Shell -->
+<aside class="bg-surface-container-lowest h-screen w-64 fixed left-0 top-0 overflow-y-auto shadow-[20px_0_25px_-5px_rgba(113,42,226,0.05)] z-50 flex flex-col p-md hidden md:flex">
+<div class="mb-lg">
+<h1 class="text-headline-md font-headline-md font-extrabold text-primary">Anak Hebat</h1>
+<p class="text-label-md font-label-md text-outline">Admin Portal</p>
+</div>
+<nav class="flex-grow space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-lg font-bold transition-transform active:scale-95" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-md font-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-secondary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">school</span>
+<span class="text-label-md font-label-md">Students</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-secondary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="text-label-md font-label-md">Teachers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-secondary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">event_available</span>
+<span class="text-label-md font-label-md">Attendance</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-secondary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-label-md font-label-md">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:text-secondary transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-md font-label-md">Reports</span>
+</a>
+</nav>
+<div class="mt-auto pt-lg space-y-2 border-t border-surface-container">
+<button class="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined">add</span>
+<span class="text-label-md">Add New Student</span>
+</button>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-secondary" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md font-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-secondary" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-label-md font-label-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 right-0 w-full md:w-[calc(100%-256px)] z-40 bg-surface-bright/80 backdrop-blur-md">
+<div class="flex justify-between items-center h-16 px-md">
+<div class="flex items-center gap-4 flex-grow">
+<div class="relative w-full max-w-md hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-full text-body-sm focus:ring-2 focus:ring-secondary/20" placeholder="Search data..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-md">
+<button class="bg-secondary text-white px-4 py-2 rounded-full text-label-sm font-bold flex items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export Data
+                </button>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">help</span></button>
+<div class="h-8 w-8 rounded-full bg-surface-container-highest overflow-hidden border-2 border-primary-container/20">
+<img alt="Admin Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAj8fS4A4ORPevORi3SnTo69rbO_HF45pFwIZVdOuByQL4B8bpHw8OyQ2kVgsRhTqcQeCQjLKTS_cvlDmFvPZ_mrdHj3A8Uv-NAMwf1BnPspwCyNfYALyscdswu8S6cxFpWcMZld-0U_zOQi699licrq-TX8EH-aE9WMpLuBHcylCpQdPCKnWDZryE7puy66IYMJjYQOmXmsz2SdhOR4LEGzVvwz-oBI9cwQDHdK23gYxjV8AePO7kUm0onpmZxlH83ddYTT_hFuMg"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-0 md:ml-64 pt-24 px-md pb-md min-h-screen">
+<!-- Welcome Header -->
+<div class="mb-lg flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h2 class="text-headline-lg font-headline-lg text-on-surface">Selamat Datang, Admin AHE!</h2>
+<p class="text-body-md font-body-md text-on-surface-variant">Berikut adalah ringkasan performa bimbingan belajar hari ini.</p>
+</div>
+<div class="flex gap-2">
+<div class="flex -space-x-3 overflow-hidden">
+<img alt="Avatar" class="inline-block h-10 w-10 rounded-full ring-2 ring-surface" data-alt="A bright, cheerful portrait of a young student in a modern educational setting. The lighting is soft and natural, emphasizing the vibrant red and purple accent colors of the school uniform. The background is a clean, minimalist classroom with high-key lighting, creating an optimistic and professional academic atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZhZKFcwQzvDkS_auXArKcvcuMxjNPNSr5K9dANuaDIfRuFCTtTyP1bSKhPhvhB6kCBNklolNgjmHNV0k_wHxc9hjzsxAsEqQ9ag1puvh3bW4v-8jeYKvvWudFMv1EJihFNEuyH7UF3NnZp25AMJny9ptI_hN3rkMFPpOMbqRXOh2O8ZkNZrkvOfoSgSO-d1zLVA2N3nFlHlkOB5ItfcQGcFL8_DCsSKY0DjdCwaxiViZGLY7SprLQu3RzOrrtaGCegf4CwsIMJ8X9"/>
+<img alt="Avatar" class="inline-block h-10 w-10 rounded-full ring-2 ring-surface" data-alt="A portrait of a smiling teacher in a high-tech learning environment. The image uses a clean, light-mode aesthetic with subtle purple shadows and crisp white highlights. The atmosphere is professional and energetic, reflecting the vibrant educational spirit of a modern learning center with high-clarity details." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoais7-g0hBELUYfkWArURYcIVS61fSNa0WBKvJFDm3kKHMoQAkB6cGYz-rPaEU4CzTigj4iiq7OUmEuXnGTXKM9m6TTXJDAzJumcS_lCbn1fHf3wwBAm3_tfOHdupSFp2Ib26c2WGfhvfD8blEHHGUxoc8Z64xkv8g_5VHJEWhK6jCQQ69irR7fE-i6WPu0zS2KyujBEFOT79T1uBVk6i4NvbdLKKJfz1LMDtnF0yg3APZT_uXYuJ2xNIuP2INeVSPYj_YCoLd3zS"/>
+<img alt="Avatar" class="inline-block h-10 w-10 rounded-full ring-2 ring-surface" data-alt="A close-up shot of a young student focused on a creative task, featuring soft geometry and a bouncy layout in the background. The color palette is dominated by pristine whites, primary reds, and secondary purples, creating a high-trust and modern educational feel. The lighting is bright and airy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCj2hQgeXs2NLyU7kJ9ilq1Y6RufD0BR6zBZZSD74C4s1KLKIh5ZjEiUL8xMNnh5BGHpGq5g01pyW3nNlhSXaZdpaAaCZPBLaDJVhZqT6heUzoM4JdgRsgSRAtqBcpZgGgP6bXKRyz_t_unLfJ_p1FuoIuxd4D7tnO4EwfB5oBc_aJJYxTv_U2piu4ITquO3iI428gfyE_xBrnDqhplmb9NvBZ9vSEkzjGamDyvyY3pVpGOV8i2z1L3Nz1_qmlHrmfk_1DZ5NU5_TQe"/>
+<div class="flex items-center justify-center h-10 w-10 rounded-full ring-2 ring-surface bg-primary text-on-primary text-label-sm">+12</div>
+</div>
+</div>
+</div>
+<!-- Key Statistics Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter mb-lg">
+<!-- Total Students -->
+<div class="bg-surface-container-lowest p-md rounded-lg shadow-sm border border-surface-container hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div class="p-2 bg-secondary-container/20 rounded-lg text-secondary">
+<span class="material-symbols-outlined">group</span>
+</div>
+<span class="flex items-center text-label-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px] mr-1">trending_up</span>
+                        12%
+                    </span>
+</div>
+<h3 class="text-label-md font-label-md text-outline">Total Students</h3>
+<p class="text-headline-md font-headline-md text-on-surface">1,284</p>
+<div class="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-3/4 rounded-full"></div>
+</div>
+</div>
+<!-- Active Teachers -->
+<div class="bg-surface-container-lowest p-md rounded-lg shadow-sm border border-surface-container hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div class="p-2 bg-primary-container/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">person_pin</span>
+</div>
+<span class="text-label-sm text-outline">Active Now</span>
+</div>
+<h3 class="text-label-md font-label-md text-outline">Active Teachers</h3>
+<p class="text-headline-md font-headline-md text-on-surface">42</p>
+<div class="mt-4 flex gap-1 items-center">
+<span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+<span class="text-body-sm text-outline">8 currently in class</span>
+</div>
+</div>
+<!-- Pending Payments -->
+<div class="bg-surface-container-lowest p-md rounded-lg shadow-sm border border-surface-container hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div class="p-2 bg-amber-100 rounded-lg text-amber-700">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+<span class="text-label-sm text-amber-700">Needs Action</span>
+</div>
+<h3 class="text-label-md font-label-md text-outline">Pending Payments</h3>
+<p class="text-headline-md font-headline-md text-on-surface">15</p>
+<div class="mt-4 text-body-sm text-outline font-medium">Total: Rp 12.500.000</div>
+</div>
+<!-- Today's Attendance -->
+<div class="bg-surface-container-lowest p-md rounded-lg shadow-sm border border-surface-container hover:shadow-md transition-shadow">
+<div class="flex justify-between items-start mb-sm">
+<div class="p-2 bg-tertiary-fixed-dim/30 rounded-lg text-tertiary">
+<span class="material-symbols-outlined">how_to_reg</span>
+</div>
+<span class="text-label-sm text-on-surface-variant">94% Target</span>
+</div>
+<h3 class="text-label-md font-label-md text-outline">Today's Attendance</h3>
+<p class="text-headline-md font-headline-md text-on-surface">892</p>
+<div class="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[94%] rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Bento Layout -->
+<div class="bento-grid">
+<!-- Left Column: Registration Stats & Activity -->
+<div class="col-span-12 lg:col-span-7 space-y-gutter">
+<!-- Registration Chart Card -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm overflow-hidden border border-surface-container">
+<div class="p-md flex justify-between items-center bg-surface-container-low/30 border-b border-surface-container">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Statistik Pendaftaran</h3>
+<div class="flex gap-2">
+<span class="h-3 w-3 rounded-full bg-secondary"></span>
+<span class="text-label-sm text-outline">Target: 200/mo</span>
+</div>
+</div>
+<div class="p-md">
+<div class="flex items-end justify-between h-48 gap-4 px-2">
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-24">
+<div class="absolute bottom-0 w-full bg-primary-container rounded-t-lg transition-all duration-500 h-[60%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">Jan</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-32">
+<div class="absolute bottom-0 w-full bg-primary-container rounded-t-lg transition-all duration-500 h-[75%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">Feb</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-40">
+<div class="absolute bottom-0 w-full bg-primary-container rounded-t-lg transition-all duration-500 h-[85%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">Mar</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-36">
+<div class="absolute bottom-0 w-full bg-primary-container rounded-t-lg transition-all duration-500 h-[70%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">Apr</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-48">
+<div class="absolute bottom-0 w-full bg-secondary-container rounded-t-lg transition-all duration-500 h-[95%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">May</span>
+</div>
+<div class="flex flex-col items-center flex-1 gap-2">
+<div class="w-full bg-surface-container rounded-t-lg relative group h-44">
+<div class="absolute bottom-0 w-full bg-secondary-container rounded-t-lg transition-all duration-500 h-[80%] group-hover:opacity-80"></div>
+</div>
+<span class="text-label-sm text-outline">Jun</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity List -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm border border-surface-container">
+<div class="p-md bg-surface-container-low/30 border-b border-surface-container">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Aktivitas Terbaru</h3>
+</div>
+<div class="divide-y divide-surface-container">
+<!-- Activity Item 1 -->
+<div class="p-md flex items-center gap-4 hover:bg-surface-bright transition-colors">
+<div class="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">person_add</span>
+</div>
+<div class="flex-grow">
+<p class="text-body-md font-bold text-on-surface">Budi Santoso <span class="font-normal text-on-surface-variant">telah terdaftar sebagai murid baru.</span></p>
+<p class="text-body-sm text-outline">10 menit yang lalu • Unit Jakarta Barat</p>
+</div>
+<span class="px-2 py-1 bg-surface-container rounded text-label-sm text-on-surface-variant">Active</span>
+</div>
+<!-- Activity Item 2 -->
+<div class="p-md flex items-center gap-4 hover:bg-surface-bright transition-colors">
+<div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">login</span>
+</div>
+<div class="flex-grow">
+<p class="text-body-md font-bold text-on-surface">Ibu Siti <span class="font-normal text-on-surface-variant">melakukan check-in guru.</span></p>
+<p class="text-body-sm text-outline">25 menit yang lalu • Unit Surabaya</p>
+</div>
+<span class="px-2 py-1 bg-green-50 text-green-700 rounded text-label-sm">Present</span>
+</div>
+<!-- Activity Item 3 -->
+<div class="p-md flex items-center gap-4 hover:bg-surface-bright transition-colors">
+<div class="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div class="flex-grow">
+<p class="text-body-md font-bold text-on-surface">Pembayaran SPP <span class="font-normal text-on-surface-variant">oleh Anisa Rahma diverifikasi.</span></p>
+<p class="text-body-sm text-outline">1 jam yang lalu • Mobile App</p>
+</div>
+<span class="px-2 py-1 bg-surface-container rounded text-label-sm text-on-surface-variant">Verified</span>
+</div>
+</div>
+<button class="w-full py-3 text-label-md font-bold text-secondary hover:bg-secondary/5 transition-colors border-t border-surface-container">
+                        Lihat Semua Aktivitas
+                    </button>
+</div>
+</div>
+<!-- Right Column: Payment & Quick Actions -->
+<div class="col-span-12 lg:col-span-5 space-y-gutter">
+<!-- Payment Status Tracker -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm border border-surface-container overflow-hidden">
+<div class="p-md bg-secondary/5 border-b border-surface-container">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Status Pembayaran Terkini</h3>
+</div>
+<div class="p-md flex flex-col items-center">
+<!-- Custom Radial Progress -->
+<div class="relative h-48 w-48 flex items-center justify-center mb-6">
+<svg class="h-full w-full transform -rotate-90">
+<circle class="text-surface-container" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-secondary transition-all duration-1000" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-dasharray="502.6" stroke-dashoffset="125.6" stroke-width="12"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="text-headline-xl font-headline-xl text-on-surface">75%</span>
+<span class="text-label-sm text-outline uppercase tracking-widest">Selesai</span>
+</div>
+</div>
+<div class="w-full space-y-4">
+<div class="flex justify-between items-center text-body-md">
+<span class="text-outline">Terbayar Lunas</span>
+<span class="font-bold text-on-surface">Rp 450.000.000</span>
+</div>
+<div class="flex justify-between items-center text-body-md">
+<span class="text-outline">Tunggakan</span>
+<span class="font-bold text-primary">Rp 150.000.000</span>
+</div>
+<button class="w-full py-3 mt-2 bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 active:scale-95 transition-all">
+                                Kirim Pengingat Massal
+                            </button>
+</div>
+</div>
+</div>
+<!-- Quick Actions Grid -->
+<div class="bg-surface-container-lowest rounded-lg shadow-sm border border-surface-container overflow-hidden">
+<div class="p-md bg-surface-container-low/30 border-b border-surface-container">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Quick Actions</h3>
+</div>
+<div class="p-md grid grid-cols-2 gap-4">
+<button class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-primary/10 hover:border-primary/40 hover:bg-primary/5 transition-all group">
+<div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">person_add</span>
+</div>
+<span class="text-label-md font-bold text-on-surface text-center">Tambah Murid</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-secondary/10 hover:border-secondary/40 hover:bg-secondary/5 transition-all group">
+<div class="h-12 w-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<span class="text-label-md font-bold text-on-surface text-center">Catat Absensi</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-tertiary/10 hover:border-tertiary/40 hover:bg-tertiary/5 transition-all group">
+<div class="h-12 w-12 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="text-label-md font-bold text-on-surface text-center">Laporan Keuangan</span>
+</button>
+<button class="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-primary-container/10 hover:border-primary-container/40 hover:bg-primary-container/5 transition-all group">
+<div class="h-12 w-12 rounded-full bg-primary-container/10 flex items-center justify-center text-primary-container mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined">edit_note</span>
+</div>
+<span class="text-label-md font-bold text-on-surface text-center">Input Evaluasi</span>
+</button>
+</div>
+</div>
+<!-- Upcoming Events/Teacher Brief Card -->
+<div class="relative rounded-lg overflow-hidden h-40 group cursor-pointer">
+<img alt="Education Banner" class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A cinematic, shallow depth-of-field shot of a modern, well-lit classroom filled with colorful educational tools. The lighting is warm and natural, casting soft shadows and highlighting a professional yet inviting atmosphere. The composition emphasizes high-end design quality with vibrant red and purple accents visible in the background equipment, reflecting a brand identity of growth and energy." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8--wvA6D5BFnb4WEKqOTVQmie-_YuO5oaCDfn7r2z8QG9kMrQidfiJ4jjIeVf71KxT7RAVoTeMwUUy6dkRsPJNLi67yHtYry2J04NbfR5Ol1vIGFqI_IT9ySu-pwoACLzoufMLoo4WZub6tdQFtUuiAS02UxGo8-Cfcv-rroqu5yuF99xtADxzXof9gZvkl1neZksb7gF7sKst0ajEiR1WsYLCLuv0KHkNojDU_UCPlM18hihkeUBKATMNJzkXLuOm5Tht4A-8OEP"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent"></div>
+<div class="absolute bottom-4 left-4 right-4 text-white">
+<p class="text-label-sm font-bold opacity-80 uppercase">Agenda Mendatang</p>
+<h4 class="text-headline-sm font-headline-sm">Rapat Koordinasi Guru - Unit Pusat</h4>
+<p class="text-body-sm">Besok, 09:00 WIB • Ruang Serbaguna</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB - Dashboard Only -->
+<button class="fixed bottom-8 right-8 h-14 w-14 rounded-full bg-primary text-on-primary shadow-xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group z-50">
+<span class="material-symbols-outlined">add</span>
+<span class="absolute right-full mr-4 px-3 py-1 bg-inverse-surface text-inverse-on-surface text-label-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Create New Task</span>
+</button>
+<script>
+        // Micro-interaction for sidebar links
+        const navLinks = document.querySelectorAll('aside nav a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                navLinks.forEach(l => {
+                    l.classList.remove('bg-secondary-container', 'text-on-secondary-container', 'font-bold');
+                    l.classList.add('text-on-surface-variant');
+                });
+                link.classList.add('bg-secondary-container', 'text-on-secondary-container', 'font-bold');
+                link.classList.remove('text-on-surface-variant');
+            });
+        });
+
+        // Simple Fade-in Animation for cards on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('.bg-surface-container-lowest');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.4s ease-out';
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 50 * index);
+            });
+        });
+    </script>
+</body></html>
