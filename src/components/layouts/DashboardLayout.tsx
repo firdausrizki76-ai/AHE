@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { 
   LayoutDashboard, Users, UserCog, BookOpen, CalendarCheck, 
@@ -57,10 +57,18 @@ const muridMenu: SidebarItem[] = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuthStore();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Error signing out from Supabase:", err);
+    } finally {
+      logout();
+      router.push("/login");
+    }
   };
 
   const menuItems = user?.role === "admin" ? adminMenu 

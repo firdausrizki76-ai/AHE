@@ -17,8 +17,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     setMounted(true);
     initializeMockData();
 
+    // Set a safety timeout to ensure the app doesn't hang on "Memuat Portal..." indefinitely
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth check timed out, setting loading to false.');
+      setLoading(false);
+    }, 2500);
+
     // Listen for auth state changes from Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      clearTimeout(timeoutId);
       if (session) {
         try {
           // Fetch user profile to determine role
@@ -76,6 +83,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     });
 
     return () => {
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [login, logout]);
