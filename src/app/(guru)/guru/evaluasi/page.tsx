@@ -105,15 +105,8 @@ export default function GuruEvaluasiPage() {
         .maybeSingle();
       if (tErr) throw tErr;
 
-      // Fallback: if no profile linked to auth, fetch first teacher as fallback
-      let activeTeacher = teacher;
-      if (!activeTeacher) {
-        const { data: fallbackTeachers } = await supabase.from("teachers").select("*").limit(1);
-        if (fallbackTeachers && fallbackTeachers.length > 0) {
-          activeTeacher = fallbackTeachers[0];
-        }
-      }
-      setTeacherProfile(activeTeacher);
+      // Fallback removed — teacher must be properly linked via user_id
+      setTeacherProfile(teacher);
 
       // 2. Fetch evaluations
       let query = supabase
@@ -127,8 +120,8 @@ export default function GuruEvaluasiPage() {
           student_les (*)
         `);
 
-      if (activeTeacher) {
-        query = query.eq("evaluated_by", activeTeacher.id);
+      if (teacher) {
+        query = query.eq("evaluated_by", teacher.id);
       }
 
       const { data: evaluationsData, error: evalErr } = await query.order("created_at", { ascending: false });

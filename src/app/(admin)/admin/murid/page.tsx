@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { Users, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Users, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 
@@ -16,8 +16,15 @@ export default function MuridPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewStudent, setPreviewStudent] = useState<any | null>(null);
 
+  // Filter & Sort states
+  const [filterClass, setFilterClass] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [sortField, setSortField] = useState<'nis' | 'full_name' | ''>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   // Form states
   const [formData, setFormData] = useState({
+    nis: "",
     nik: "",
     full_name: "",
     nickname: "",
@@ -156,10 +163,60 @@ export default function MuridPage() {
   const activeCount = students.filter(s => s.status === 'active').length;
   const inactiveCount = students.filter(s => s.status === 'inactive').length;
 
-  const filteredStudents = students.filter(s => 
-    s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    s.nis.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Get unique class names for filter dropdown
+  const classNames = useMemo(() => {
+    const names = new Set<string>();
+    students.forEach(s => {
+      const className = s.class_members?.[0]?.classes?.name;
+      if (className) names.add(className);
+    });
+    return Array.from(names).sort();
+  }, [students]);
+
+  const handleSort = (field: 'nis' | 'full_name') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 opacity-40" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
+  };
+
+  const filteredStudents = useMemo(() => {
+    let result = students.filter(s => {
+      // Search filter
+      const matchSearch = !searchQuery || 
+        s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.nis.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status filter
+      const matchStatus = !filterStatus || s.status === filterStatus;
+      
+      // Class filter
+      const studentClassName = s.class_members?.[0]?.classes?.name || '';
+      const matchClass = !filterClass || studentClassName === filterClass;
+      
+      return matchSearch && matchStatus && matchClass;
+    });
+
+    // Sort
+    if (sortField) {
+      result = [...result].sort((a, b) => {
+        const valA = (a[sortField] || '').toLowerCase();
+        const valB = (b[sortField] || '').toLowerCase();
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [students, searchQuery, filterStatus, filterClass, sortField, sortDirection]);
 
   const filteredClasses = classesList.filter(c => {
     if (c.les_type !== formData.les_type) return false;
@@ -217,6 +274,7 @@ export default function MuridPage() {
       const currentLes = student.student_les?.[0] || {};
       const currentClassId = student.class_members?.[0]?.class_id || "";
       setFormData({
+        nis: student.nis || "",
         nik: student.nik || "",
         full_name: student.full_name || "",
         nickname: student.nickname || "",
@@ -246,6 +304,7 @@ export default function MuridPage() {
       });
     } else {
       setFormData({
+        nis: "",
         nik: "",
         full_name: "",
         nickname: "",
@@ -300,10 +359,13 @@ export default function MuridPage() {
       }
 
       if (modalMode === 'add') {
-        // Generate NIS from DB function
-        const { data: nisData, error: nisError } = await supabase.rpc("generate_nis");
-        if (nisError) throw nisError;
-        const nis = nisData as string;
+        // Use manually entered NIS
+        const nis = formData.nis.trim();
+        if (!nis) {
+          toast.error("NIS wajib diisi!");
+          setSaveLoading(false);
+          return;
+        }
 
         // 1. Insert Student
         const { data: newStudent, error: studentError } = await supabase
@@ -376,6 +438,7 @@ export default function MuridPage() {
         const { error: studentError } = await supabase
           .from("students")
           .update({
+            nis: formData.nis.trim(),
             nik: formData.nik || null,
             full_name: formData.full_name,
             nickname: formData.nickname || null,
@@ -552,17 +615,53 @@ export default function MuridPage() {
 
       {/* Table Section */}
       <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
-        <div className="p-6 border-b border-surface-container bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-headline-sm font-headline-sm text-on-surface">Daftar Murid</h3>
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-            <input 
-              type="text" 
-              placeholder="Cari nama atau NIS..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface text-on-surface w-full sm:w-64"
-            />
+        <div className="p-6 border-b border-surface-container bg-surface-container-lowest space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="text-headline-sm font-headline-sm text-on-surface">Daftar Murid</h3>
+            <div className="relative">
+              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+              <input 
+                type="text" 
+                placeholder="Cari nama atau NIS..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface text-on-surface w-full sm:w-64"
+              />
+            </div>
+          </div>
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-on-surface-variant">
+              <Filter className="w-4 h-4" />
+              <span className="text-label-sm font-bold uppercase tracking-wider">Filter:</span>
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-outline-variant text-body-sm bg-surface text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary outline-none"
+            >
+              <option value="">Semua Status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+            <select
+              value={filterClass}
+              onChange={(e) => setFilterClass(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-outline-variant text-body-sm bg-surface text-on-surface focus:ring-2 focus:ring-secondary focus:border-secondary outline-none"
+            >
+              <option value="">Semua Kelas</option>
+              {classNames.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            {(filterStatus || filterClass) && (
+              <button
+                onClick={() => { setFilterStatus(''); setFilterClass(''); }}
+                className="px-3 py-1.5 rounded-lg text-body-sm text-error hover:bg-error-container/30 font-bold transition-colors"
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -572,8 +671,16 @@ export default function MuridPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-lowest border-b border-surface-container">
-                  <th className="p-4 font-label-md text-on-surface-variant">NIS</th>
-                  <th className="p-4 font-label-md text-on-surface-variant">Nama Lengkap</th>
+                  <th className="p-4 font-label-md text-on-surface-variant">
+                    <button onClick={() => handleSort('nis')} className="inline-flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer">
+                      NIS {getSortIcon('nis')}
+                    </button>
+                  </th>
+                  <th className="p-4 font-label-md text-on-surface-variant">
+                    <button onClick={() => handleSort('full_name')} className="inline-flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer">
+                      Nama Lengkap {getSortIcon('full_name')}
+                    </button>
+                  </th>
                   <th className="p-4 font-label-md text-on-surface-variant">Program & Kelas</th>
                   <th className="p-4 font-label-md text-on-surface-variant">Tanggal Bergabung</th>
                   <th className="p-4 font-label-md text-on-surface-variant">Status</th>
@@ -670,6 +777,11 @@ export default function MuridPage() {
                 <div className="space-y-4">
                   <h4 className="text-label-md font-bold text-primary uppercase tracking-wider border-b border-outline-variant pb-2">Profil Anak</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-label-md font-bold text-on-surface">NIS (Nomor Induk Siswa) <span className="text-error">*</span></label>
+                      <input required name="nis" value={formData.nis} onChange={handleInputChange} type="text" className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface" placeholder="Contoh: AHE-2026-001" />
+                      {modalMode === 'edit' && <p className="text-body-sm text-on-surface-variant">⚠️ Ubah NIS hanya jika diperlukan</p>}
+                    </div>
                     <div className="space-y-2">
                       <label className="text-label-md font-bold text-on-surface">NIK Anak</label>
                       <input name="nik" value={formData.nik} onChange={handleInputChange} type="text" className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface" placeholder="Sesuai KK" />

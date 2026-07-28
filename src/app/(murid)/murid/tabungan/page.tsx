@@ -25,21 +25,15 @@ export default function MuridTabunganPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase.from("students").select("id, full_name, nickname").limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch savings account
         const { data: savingsAcc, error: saErr } = await supabase
           .from("savings_accounts")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .maybeSingle();
         if (!saErr && savingsAcc) {
           setBalance(Number(savingsAcc.balance || 0));
@@ -49,7 +43,7 @@ export default function MuridTabunganPage() {
         const { data: txs, error: txErr } = await supabase
           .from("savings_transactions")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("created_at", { ascending: false });
         if (!txErr) {
           setTransactions(txs || []);

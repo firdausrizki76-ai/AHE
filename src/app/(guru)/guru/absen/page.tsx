@@ -64,15 +64,8 @@ export default function GuruAbsenPage() {
         .maybeSingle();
       if (tErr) throw tErr;
 
-      // Fallback: if no profile linked to auth, fetch first teacher as fallback
-      let activeTeacher = teacher;
-      if (!activeTeacher) {
-        const { data: fallbackTeachers } = await supabase.from("teachers").select("*").limit(1);
-        if (fallbackTeachers && fallbackTeachers.length > 0) {
-          activeTeacher = fallbackTeachers[0];
-        }
-      }
-      setTeacherProfile(activeTeacher);
+      // Fallback removed — teacher must be properly linked via user_id
+      setTeacherProfile(teacher);
 
       // 2. Fetch all active students
       const { data: studentsData, error: studentErr } = await supabase
@@ -92,11 +85,11 @@ export default function GuruAbsenPage() {
       setStudentAttendance(studentAttData || []);
 
       // 4. Fetch self attendance for selected date
-      if (activeTeacher) {
+      if (teacher) {
         const { data: myAtt, error: myAttErr } = await supabase
           .from("teacher_attendance")
           .select("*")
-          .eq("teacher_id", activeTeacher.id)
+          .eq("teacher_id", teacher.id)
           .eq("date", date)
           .maybeSingle();
 
@@ -223,15 +216,15 @@ export default function GuruAbsenPage() {
         }
 
         if (!item.attendanceId) {
-          // Insert new record
+          // Insert new record — use upsert to handle constraint
           const { error: insErr } = await supabase
             .from("student_attendance")
-            .insert({
+            .upsert({
               student_id: item.id,
               date: date,
               status: item.status,
               les_type: item.les_type
-            });
+            }, { onConflict: 'student_id,date' });
           if (insErr) throw insErr;
           if (item.status === 'hadir') {
             pointsAdded++;
@@ -468,6 +461,13 @@ export default function GuruAbsenPage() {
               Simpan Absensi Murid
             </button>
           </div>
+        </div>
+      ) : !teacherProfile ? (
+        /* Teacher profile not linked */
+        <div className="p-12 flex flex-col items-center justify-center text-on-surface-variant gap-3 bg-surface rounded-2xl border text-center">
+          <User className="w-12 h-12 text-primary" />
+          <p className="font-bold text-headline-sm text-on-surface">Profil Guru Belum Terhubung</p>
+          <p className="text-body-md text-on-surface-variant max-w-md">Akun Anda belum terhubung dengan data guru. Hubungi admin untuk menautkan akun Anda ke data guru.</p>
         </div>
       ) : (
         /* Teacher Self Attendance Card */

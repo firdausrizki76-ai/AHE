@@ -31,21 +31,15 @@ export default function MuridIzinPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase.from("students").select("id, full_name, nickname").limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch leave requests
         const { data: requestsData, error: reqErr } = await supabase
           .from("leave_requests")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("date", { ascending: false });
 
         if (reqErr) throw reqErr;

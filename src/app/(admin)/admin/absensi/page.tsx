@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2 } from "lucide-react";
+import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 
@@ -17,6 +17,7 @@ export default function AbsensiPage() {
 
   const [muridData, setMuridData] = useState<any[]>([]);
   const [guruData, setGuruData] = useState<any[]>([]);
+  const [quickInput, setQuickInput] = useState("");
 
   const getLesProgramInfo = (student: any) => {
     const studentLesList = student.student_les || [];
@@ -137,6 +138,35 @@ export default function AbsensiPage() {
     }));
   };
 
+  const handleQuickInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    const value = quickInput.trim().toLowerCase();
+    if (!value) return;
+
+    if (activeTab === 'murid') {
+      const found = students.find(s => s.nis?.toLowerCase() === value);
+      if (found) {
+        const current = muridData.find(m => m.id === found.id);
+        const newStatus = current?.status === 'hadir' ? 'belum' : 'hadir';
+        handleStatusChange(found.id, newStatus);
+        toast.success(`${found.full_name} → ${newStatus === 'hadir' ? 'Hadir ✅' : 'Batal ❌'}`);
+      } else {
+        toast.error(`NIS "${quickInput.trim()}" tidak ditemukan`);
+      }
+    } else {
+      const found = teachers.find(t => t.nip?.toLowerCase() === value);
+      if (found) {
+        const current = guruData.find(g => g.id === found.id);
+        const newStatus = current?.status === 'hadir' ? 'belum' : 'hadir';
+        handleTeacherStatusChange(found.id, newStatus);
+        toast.success(`${found.full_name} → ${newStatus === 'hadir' ? 'Hadir ✅' : 'Batal ❌'}`);
+      } else {
+        toast.error(`NIP "${quickInput.trim()}" tidak ditemukan`);
+      }
+    }
+    setQuickInput("");
+  };
+
   const saveAttendance = async () => {
     setSaveLoading(true);
     try {
@@ -181,15 +211,15 @@ export default function AbsensiPage() {
           }
 
           if (!item.attendanceId) {
-            // Insert new record
+            // Insert new record — use upsert to handle constraint
             const { data: inserted, error: insErr } = await supabase
               .from("student_attendance")
-              .insert({
+              .upsert({
                 student_id: item.id,
                 date: date,
                 status: item.status,
                 les_type: item.les_type
-              })
+              }, { onConflict: 'student_id,date' })
               .select()
               .single();
             if (insErr) throw insErr;
@@ -271,13 +301,13 @@ export default function AbsensiPage() {
           if (!item.attendanceId) {
             const { error: insErr } = await supabase
               .from("teacher_attendance")
-              .insert({
+              .upsert({
                 teacher_id: item.id,
                 date: date,
                 status: item.status,
                 check_in_time: item.timeIn === '-' ? null : item.timeIn,
                 check_out_time: item.timeOut === '-' ? null : item.timeOut
-              });
+              }, { onConflict: 'teacher_id,date' });
             if (insErr) throw insErr;
             savedCount++;
           } else if (item.status !== item.originalStatus) {
@@ -335,6 +365,22 @@ export default function AbsensiPage() {
             onChange={(e) => setDate(e.target.value)}
             className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface text-on-surface font-bold"
           />
+        </div>
+      </div>
+
+      {/* Quick NIS/NIP Input */}
+      <div className="bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm">
+        <div className="flex items-center gap-3">
+          <Search className="w-5 h-5 text-primary shrink-0" />
+          <input
+            type="text"
+            placeholder={activeTab === 'murid' ? 'Ketik NIS murid lalu tekan Enter untuk toggle Hadir...' : 'Ketik NIP guru lalu tekan Enter untuk toggle Hadir...'}
+            value={quickInput}
+            onChange={(e) => setQuickInput(e.target.value)}
+            onKeyDown={handleQuickInput}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface"
+          />
+          <span className="text-label-sm text-on-surface-variant hidden sm:block">Tekan Enter ↵</span>
         </div>
       </div>
 

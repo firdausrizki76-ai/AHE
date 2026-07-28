@@ -27,20 +27,10 @@ export default function MuridDashboardPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      // Fallback for development if not linked
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase
-          .from("students")
-          .select("*, student_points(*), savings_accounts(*), student_les(*)")
-          .limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch student classes
         const { data: memberClasses, error: mcErr } = await supabase
           .from("class_members")
@@ -51,7 +41,7 @@ export default function MuridDashboardPage() {
               teachers (full_name)
             )
           `)
-          .eq("student_id", activeStudent.id);
+          .eq("student_id", studentData.id);
         if (!mcErr) {
           setClasses(memberClasses?.map(mc => mc.classes).filter(Boolean) || []);
         }
@@ -60,7 +50,7 @@ export default function MuridDashboardPage() {
         const { data: activeEvals, error: aeErr } = await supabase
           .from("evaluations")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .in("status", ["scheduled", "ongoing"])
           .order("start_date", { ascending: true })
           .limit(3);
@@ -72,7 +62,7 @@ export default function MuridDashboardPage() {
         const { data: recentScores, error: rsErr } = await supabase
           .from("achievements")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("created_at", { ascending: false })
           .limit(3);
         if (!rsErr) {

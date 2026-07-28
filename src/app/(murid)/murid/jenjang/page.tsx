@@ -25,21 +25,15 @@ export default function MuridJenjangPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase.from("students").select("id, full_name, nickname").limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch student les
         const { data: lesData, error: lesErr } = await supabase
           .from("student_les")
           .select("*")
-          .eq("student_id", activeStudent.id);
+          .eq("student_id", studentData.id);
         if (!lesErr) {
           setStudentLes(lesData || []);
         }
@@ -48,7 +42,7 @@ export default function MuridJenjangPage() {
         const { data: evalsData, error: evalsErr } = await supabase
           .from("evaluations")
           .select("*")
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("created_at", { ascending: false });
         if (!evalsErr) {
           setEvaluations(evalsData || []);

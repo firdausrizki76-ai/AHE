@@ -68,14 +68,8 @@ export default function GuruDashboardPage() {
           studentCount = uniqueIds.size;
         }
       } else {
-        // Fallback or count all active students if teacher profile is not created/linked yet
-        const { count, error: countErr } = await supabase
-          .from("students")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "active");
-        if (!countErr && count !== null) {
-          studentCount = count;
-        }
+        // Teacher profile not linked
+        studentCount = 0;
       }
 
       // If no teacherId, fallbacks

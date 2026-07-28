@@ -25,16 +25,10 @@ export default function MuridTagihanPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase.from("students").select("id, full_name, nickname").limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch bills
         const { data: billsData, error: billsErr } = await supabase
           .from("payment_bills")
@@ -44,7 +38,7 @@ export default function MuridTagihanPage() {
             payment_types (*),
             payment_transactions (*)
           `)
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("created_at", { ascending: false });
 
         if (billsErr) throw billsErr;

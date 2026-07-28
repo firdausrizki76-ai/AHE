@@ -26,20 +26,8 @@ export default function MuridProfilPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase
-          .from("students")
-          .select(`
-            *,
-            registrations (*)
-          `)
-          .limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
     } catch (err: any) {
       toast.error("Gagal memuat profil: " + err.message);
     } finally {

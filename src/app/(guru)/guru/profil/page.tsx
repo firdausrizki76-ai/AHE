@@ -107,37 +107,29 @@ export default function GuruProfilPage() {
 
       if (tErr) throw tErr;
 
-      // Fallback: if no profile linked to auth, fetch first teacher as fallback
-      let activeTeacher = teacherData;
-      if (!activeTeacher) {
-        const { data: fallbackTeachers } = await supabase.from("teachers").select("*").limit(1);
-        if (fallbackTeachers && fallbackTeachers.length > 0) {
-          activeTeacher = fallbackTeachers[0];
-        }
-      }
-
-      setTeacher(activeTeacher);
-      if (activeTeacher) {
+      // Fallback removed — teacher must be properly linked via user_id
+      setTeacher(teacherData);
+      if (teacherData) {
         setFormData({
-          nip: activeTeacher.nip || "",
-          nik: activeTeacher.nik || "",
-          full_name: activeTeacher.full_name || "",
-          gender: activeTeacher.gender || "L",
-          whatsapp: activeTeacher.whatsapp || "",
-          birth_place: activeTeacher.birth_place || "",
-          birth_date: activeTeacher.birth_date || "",
-          address: activeTeacher.address || "",
-          rt: activeTeacher.rt || "",
-          rw: activeTeacher.rw || "",
-          village: activeTeacher.village || "",
-          district: activeTeacher.district || "",
-          regency: activeTeacher.regency || "",
-          position: activeTeacher.position || "Guru Utama",
-          status: activeTeacher.status || "active",
-          photo_url: activeTeacher.photo_url || "",
-          kk_url: activeTeacher.kk_url || "",
-          ktp_url: activeTeacher.ktp_url || "",
-          ijazah_url: activeTeacher.ijazah_url || ""
+          nip: teacherData.nip || "",
+          nik: teacherData.nik || "",
+          full_name: teacherData.full_name || "",
+          gender: teacherData.gender || "L",
+          whatsapp: teacherData.whatsapp || "",
+          birth_place: teacherData.birth_place || "",
+          birth_date: teacherData.birth_date || "",
+          address: teacherData.address || "",
+          rt: teacherData.rt || "",
+          rw: teacherData.rw || "",
+          village: teacherData.village || "",
+          district: teacherData.district || "",
+          regency: teacherData.regency || "",
+          position: teacherData.position || "Guru Utama",
+          status: teacherData.status || "active",
+          photo_url: teacherData.photo_url || "",
+          kk_url: teacherData.kk_url || "",
+          ktp_url: teacherData.ktp_url || "",
+          ijazah_url: teacherData.ijazah_url || ""
         });
       }
     } catch (err: any) {

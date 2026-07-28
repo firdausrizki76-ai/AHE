@@ -24,16 +24,10 @@ export default function MuridPrestasiPage() {
         .maybeSingle();
       if (sErr) throw sErr;
 
-      let activeStudent = studentData;
-      if (!activeStudent) {
-        const { data: fallbacks } = await supabase.from("students").select("id, full_name, nickname").limit(1);
-        if (fallbacks && fallbacks.length > 0) {
-          activeStudent = fallbacks[0];
-        }
-      }
-      setStudent(activeStudent);
+      // Fallback removed — student must be properly linked via user_id
+      setStudent(studentData);
 
-      if (activeStudent) {
+      if (studentData) {
         // 2. Fetch student achievements/scores
         const { data: scoresData, error: scoresErr } = await supabase
           .from("achievements")
@@ -41,7 +35,7 @@ export default function MuridPrestasiPage() {
             *,
             student_les (*)
           `)
-          .eq("student_id", activeStudent.id)
+          .eq("student_id", studentData.id)
           .order("created_at", { ascending: false });
 
         if (scoresErr) throw scoresErr;
