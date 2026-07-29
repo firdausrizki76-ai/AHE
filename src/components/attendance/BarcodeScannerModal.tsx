@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Camera, Volume2, VolumeX, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { X, Camera, Volume2, VolumeX, RefreshCw, AlertTriangle } from "lucide-react";
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -115,22 +115,12 @@ export default function BarcodeScannerModal({
           targetCamera = defaultId;
         }
 
-        // Dynamic QR box calculation to prevent Safari iOS layout collapse
-        const qrboxFunction = (viewfinderWidth: number, viewfinderHeight: number) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const size = Math.floor(minEdge * 0.72);
-          return {
-            width: Math.max(180, Math.min(size, 260)),
-            height: Math.max(180, Math.min(size, 260)),
-          };
-        };
-
-        // Start scanning
+        // Start scanning with fixed 220x220 qrbox that safely fits on any mobile screen
         await html5QrCodeRef.current.start(
           targetCamera,
           {
-            fps: 15,
-            qrbox: qrboxFunction,
+            fps: 12,
+            qrbox: { width: 220, height: 220 },
           },
           (decodedText: string) => {
             if (decodedText && decodedText !== lastScanned) {
@@ -198,13 +188,16 @@ export default function BarcodeScannerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-4 backdrop-blur-sm">
       {/* 
-        CRITICAL iOS Safari Fix: 
-        Use explicit w-[92vw] sm:w-full max-w-lg to prevent flexbox from collapsing the modal width to 0 in Safari on iPhone.
+        CRITICAL iOS Safari & Flexbox Fix:
+        - Do not use flex items-center justify-center on parent as iOS Safari collapses width of items containing <video>.
+        - Use standard block container with mx-auto, mt-10, and inline styles { minWidth: "320px", width: "100%", maxWidth: "512px" }.
       */}
-      <div className="relative w-[92vw] sm:w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 my-auto">
-        
+      <div 
+        className="mx-auto mt-8 sm:mt-16 overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+        style={{ minWidth: "320px", width: "100%", maxWidth: "512px" }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
@@ -284,7 +277,10 @@ export default function BarcodeScannerModal({
               </button>
             </div>
           ) : (
-            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-dashed border-amber-500/40 bg-slate-950 min-h-[320px] sm:min-h-[360px] flex items-center justify-center">
+            <div 
+              className="relative w-full overflow-hidden rounded-2xl border-2 border-dashed border-amber-500/40 bg-slate-950 flex items-center justify-center"
+              style={{ width: "100%", minHeight: "320px" }}
+            >
               {isLoadingCamera && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/85 text-white backdrop-blur-sm">
                   <RefreshCw className="mb-2 h-8 w-8 animate-spin text-amber-500" />
@@ -293,8 +289,8 @@ export default function BarcodeScannerModal({
               )}
               <div 
                 id="html5-qrcode-reader" 
-                className="w-full h-full overflow-hidden"
-                style={{ width: "100%", minHeight: "320px" }}
+                className="w-full h-full"
+                style={{ width: "100%", minHeight: "300px" }}
               />
             </div>
           )}
@@ -325,26 +321,32 @@ export default function BarcodeScannerModal({
           </button>
         </div>
 
-        {/* Embedded CSS to force iOS Safari video sizing to fill 100% properly */}
-        <style jsx global>{`
-          #html5-qrcode-reader {
-            width: 100% !important;
-            border: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          #html5-qrcode-reader video {
-            width: 100% !important;
-            height: auto !important;
-            max-height: 420px;
-            object-fit: cover !important;
-            border-radius: 0.75rem;
-          }
-          #html5-qrcode-reader canvas {
-            display: none;
-          }
-        `}</style>
+        {/* 
+          CRITICAL: Use standard HTML style tag with dangerouslySetInnerHTML 
+          so rules apply globally in Next.js App Router without relying on styled-jsx compiler.
+        */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              #html5-qrcode-reader {
+                width: 100% !important;
+                min-height: 300px !important;
+                border: none !important;
+              }
+              #html5-qrcode-reader video {
+                width: 100% !important;
+                height: auto !important;
+                max-height: 400px !important;
+                object-fit: cover !important;
+                border-radius: 0.75rem !important;
+                display: block !important;
+              }
+              #html5-qrcode-reader canvas {
+                display: none !important;
+              }
+            `,
+          }}
+        />
       </div>
     </div>
   );
