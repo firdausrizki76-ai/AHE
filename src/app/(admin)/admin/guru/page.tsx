@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { UserCog, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2 } from "lucide-react";
+import { UserCog, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 
 export default function GuruPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function GuruPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewTeacher, setPreviewTeacher] = useState<any | null>(null);
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -315,9 +317,20 @@ export default function GuruPage() {
           <h2 className="text-headline-lg font-headline-lg text-on-surface">Data Guru / Tentor</h2>
           <p className="text-body-md text-on-surface-variant mt-1">Kelola staf pengajar, absensi, dan informasi kontak.</p>
         </div>
-        <button onClick={() => openModal('add')} className="inline-flex items-center gap-2 bg-secondary text-on-secondary px-6 py-3 rounded-xl font-headline-sm hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm w-fit">
-          <Plus className="w-5 h-5" /> Tambah Guru
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsBarcodeModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-5 py-3 rounded-xl font-headline-sm hover:from-amber-600 hover:to-amber-700 transition-all shadow-sm"
+          >
+            <QrCode className="w-5 h-5" /> Cetak Kartu Barcode
+          </button>
+          <button
+            onClick={() => openModal('add')}
+            className="inline-flex items-center gap-2 bg-secondary text-on-secondary px-6 py-3 rounded-xl font-headline-sm hover:bg-secondary-container hover:text-on-secondary-container transition-colors shadow-sm w-fit"
+          >
+            <Plus className="w-5 h-5" /> Tambah Guru
+          </button>
+        </div>
       </div>
 
       {/* Stats Bento */}
@@ -724,6 +737,21 @@ export default function GuruPage() {
           </div>
         </div>
       )}
+
+      <BarcodeCardModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
+        title="Cetak Kartu Absensi Guru"
+        type="guru"
+        items={teachers.map((t) => ({
+          id: t.id,
+          name: t.full_name,
+          subtitle: `NIP: ${t.nip || "-"} | ${t.position || "Guru"}`,
+          code: `TCH-${t.id}`,
+          photo_url: t.photo_url || "",
+          badge: t.position || "Guru Utama",
+        }))}
+      />
     </div>
   );
 }

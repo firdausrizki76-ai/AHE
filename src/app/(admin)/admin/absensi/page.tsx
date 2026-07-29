@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search } from "lucide-react";
+import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search, QrCode, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
+import BarcodeScannerModal from "@/components/attendance/BarcodeScannerModal";
 
 export default function AbsensiPage() {
   const [activeTab, setActiveTab] = useState<'murid' | 'guru'>('murid');
@@ -18,6 +20,10 @@ export default function AbsensiPage() {
   const [muridData, setMuridData] = useState<any[]>([]);
   const [guruData, setGuruData] = useState<any[]>([]);
   const [quickInput, setQuickInput] = useState("");
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
+  const [barcodeModalType, setBarcodeModalType] = useState<'siswa' | 'guru'>('siswa');
+  const [manualCodeInput, setManualCodeInput] = useState("");
 
   const getLesProgramInfo = (student: any) => {
     const studentLesList = student.student_les || [];
@@ -334,11 +340,182 @@ export default function AbsensiPage() {
     }
   };
 
+  const handleBarcodeScan = async (scannedCode: string) => {
+    if (!scannedCode || !scannedCode.trim()) return;
+    const cleanCode = scannedCode.trim().toUpperCase();
+
+    // 1. Check if teacher (TCH-{id} or NIP or ID)
+    const teacher = teachers.find(
+      (t) =>
+        `TCH-${t.id}`.toUpperCase() === cleanCode ||
+        t.id.toUpperCase() === cleanCode ||
+        (t.nip && t.nip.toUpperCase() === cleanCode)
+    );
+
+    if (teacher) {
+      const currentT = guruData.find((g) => g.id === teacher.id);
+      if (currentT && currentT.status === "hadir") {
+        toast.info(`ℹ️ Guru ${teacher.full_name} sudah tercatat Hadir hari ini.`);
+        return;
+      }
+      const nowTime = new Date().toTimeString().split(" ")[0];
+      try {
+        const payload = {
+          teacher_id: teacher.id,
+          date: date,
+          status: "hadir",
+          check_in_time: nowTime,
+          check_out_time: null,
+        };
+        await supabase
+          .from("teacher_attendance")
+          .upsert(payload, { onConflict: "teacher_id,date" });
+        setGuruData((prev) =>
+          prev.map((g) =>
+            g.id === teacher.id ? { ...g, status: "hadir", timeIn: nowTime } : g
+          )
+        );
+        toast.success(`✅ Absen Guru "${teacher.full_name}" BERHASIL HADIR!`);
+        fetchData();
+      } catch (err: any) {
+        toast.error("Gagal mencatat absen guru: " + err.message);
+      }
+      return;
+    }
+
+    // 2. Check if student (STU-{id} or NIS or ID)
+    const student = students.find(
+      (s) =>
+        `STU-${s.id}`.toUpperCase() === cleanCode ||
+        s.id.toUpperCase() === cleanCode ||
+        (s.nis && s.nis.toUpperCase() === cleanCode)
+    );
+
+    if (!student) {
+      toast.error(`❌ Kode barcode tidak terdaftar: ${scannedCode}`);
+      return;
+    }
+
+    const currentItem = muridData.find((m) => m.id === student.id);
+    if (currentItem && currentItem.status === "hadir") {
+      toast.info(`ℹ️ Siswa ${student.full_name} sudah tercatat Hadir hari ini.`);
+      return;
+    }
+
+    try {
+      const { data: upserted, error: insErr } = await supabase
+        .from("student_attendance")
+        .upsert(
+          {
+            student_id: student.id,
+            date: date,
+            status: "hadir",
+            les_type: getPrimaryLesType(student.student_les) || "les_ahe",
+          },
+          { onConflict: "student_id,date" }
+        )
+        .select()
+        .single();
+
+      if (insErr) throw insErr;
+
+      setMuridData((prev) =>
+        prev.map((m) =>
+          m.id === student.id
+            ? { ...m, status: "hadir", attendanceId: upserted?.id || m.attendanceId }
+            : m
+        )
+      );
+      toast.success(`🎉 ${student.full_name} BERHASIL HADIR! (+1 Poin Bintang)`);
+      fetchData();
+    } catch (err: any) {
+      toast.error(`Gagal mencatat kehadiran ${student.full_name}: ` + err.message);
+    }
+  };
+
   return (
     <div className="space-y-8 font-body-md">
       <div>
         <h2 className="text-headline-lg font-headline-lg text-on-surface">Rekap Absensi</h2>
-        <p className="text-body-md text-on-surface-variant mt-1">Kelola dan pantau kehadiran murid serta guru.</p>
+        <p className="text-body-md text-on-surface-variant mt-1">Kelola dan pantau kehadiran murid serta guru via Scan Barcode.</p>
+      </div>
+
+      {/* SCANNER BARCODE CARD (HERO SECTION) */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 border-2 border-amber-500/30 shadow-md dark:from-amber-500/20 dark:to-transparent">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-white shadow-sm">
+              <QrCode className="h-4 w-4" /> MODE SCAN BARCODE & QR CODE
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+              Absensi Cepat via Scanner / Kamera
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Scan barcode kartu siswa atau guru. Sistem otomatis mencatat Hadir dan menambah +1 Poin Reward Bintang.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-600 hover:to-amber-700 active:scale-95"
+            >
+              <Camera className="h-5 w-5" />
+              Scan Kamera (HP / Webcam)
+            </button>
+            <button
+              onClick={() => {
+                setBarcodeModalType("siswa");
+                setIsBarcodeModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-white px-4 py-3 text-sm font-semibold text-amber-700 shadow-sm hover:bg-amber-50 dark:bg-slate-800 dark:text-amber-400 dark:hover:bg-slate-700"
+            >
+              <QrCode className="h-4 w-4" />
+              Cetak Kartu Siswa
+            </button>
+            <button
+              onClick={() => {
+                setBarcodeModalType("guru");
+                setIsBarcodeModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              <QrCode className="h-4 w-4" />
+              Cetak Kartu Guru
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Barcode Gun Input Box */}
+        <div className="mt-5 pt-5 border-t border-amber-500/20">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBarcodeScan(manualCodeInput);
+              setManualCodeInput("");
+            }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3"
+          >
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Scan dengan Barcode Gun USB atau ketik kode (lalu tekan Enter)..."
+                value={manualCodeInput}
+                onChange={(e) => setManualCodeInput(e.target.value)}
+                className="w-full rounded-xl border-2 border-amber-500/40 bg-white py-2.5 pl-4 pr-16 font-mono text-sm font-bold text-slate-800 placeholder-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:bg-slate-800 dark:text-white"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded">
+                ENTER
+              </span>
+            </div>
+            <button
+              type="submit"
+              className="rounded-xl bg-slate-800 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600"
+            >
+              Proses Scan
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Tabs & Date Picker */}
@@ -507,6 +684,51 @@ export default function AbsensiPage() {
           </button>
         </div>
       </div>
+
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanSuccess={(code) => {
+          handleBarcodeScan(code);
+        }}
+      />
+
+      <BarcodeCardModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
+        title={barcodeModalType === "siswa" ? "Cetak Kartu Absensi Siswa" : "Cetak Kartu Absensi Guru"}
+        type={barcodeModalType}
+        items={
+          barcodeModalType === "siswa"
+            ? students.map((s) => {
+                let programText = "AHE";
+                if (s.student_les && s.student_les.length > 0) {
+                  const t = s.student_les[0].les_type;
+                  if (t === "les_ahe") programText = `AHE Lvl ${s.student_les[0].current_level || 1}`;
+                  else if (t === "les_ase") programText = `ASE Lvl ${s.student_les[0].current_level || 1}`;
+                  else if (t === "les_mapel") programText = `Mapel (${s.student_les[0].les_mapel_name || "Umum"})`;
+                }
+                const clsName = s.class_members?.[0]?.classes?.name;
+                const subtitle = clsName ? `${programText} • ${clsName}` : programText;
+                return {
+                  id: s.id,
+                  name: s.full_name,
+                  subtitle: `NIS: ${s.nis || "-"} | ${subtitle}`,
+                  code: `STU-${s.id}`,
+                  photo_url: s.photo_url || "",
+                  badge: programText,
+                };
+              })
+            : teachers.map((t) => ({
+                id: t.id,
+                name: t.full_name,
+                subtitle: `NIP: ${t.nip || "-"} | ${t.position || "Guru"}`,
+                code: `TCH-${t.id}`,
+                photo_url: t.photo_url || "",
+                badge: t.position || "Guru Utama",
+              }))
+        }
+      />
     </div>
   );
 }

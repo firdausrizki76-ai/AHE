@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Users, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter } from "lucide-react";
+import { Users, UserCheck, UserMinus, Search, Edit, Plus, X, Eye, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Filter, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 
 export default function MuridPage() {
   const [students, setStudents] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function MuridPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewStudent, setPreviewStudent] = useState<any | null>(null);
+  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
 
   // Filter & Sort states
   const [filterClass, setFilterClass] = useState("");
@@ -577,9 +579,20 @@ export default function MuridPage() {
           <h2 className="text-headline-lg font-headline-lg text-on-surface">Data Murid</h2>
           <p className="text-body-md text-on-surface-variant mt-1">Kelola data murid, kelas, dan status keaktifan.</p>
         </div>
-        <button onClick={() => openModal('add')} className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-headline-sm hover:bg-primary-container transition-colors shadow-sm w-fit">
-          <Plus className="w-5 h-5" /> Tambah Murid
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => setIsBarcodeModalOpen(true)}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white px-5 py-3 rounded-xl font-headline-sm hover:from-amber-600 hover:to-amber-700 transition-all shadow-sm"
+          >
+            <QrCode className="w-5 h-5" /> Cetak Kartu Barcode
+          </button>
+          <button
+            onClick={() => openModal('add')}
+            className="inline-flex items-center gap-2 bg-primary text-on-primary px-6 py-3 rounded-xl font-headline-sm hover:bg-primary-container transition-colors shadow-sm w-fit"
+          >
+            <Plus className="w-5 h-5" /> Tambah Murid
+          </button>
+        </div>
       </div>
 
       {/* Stats Bento */}
@@ -1095,6 +1108,32 @@ export default function MuridPage() {
           </div>
         </div>
       )}
+
+      <BarcodeCardModal
+        isOpen={isBarcodeModalOpen}
+        onClose={() => setIsBarcodeModalOpen(false)}
+        title="Cetak Kartu Absensi Siswa"
+        type="siswa"
+        items={students.map((s) => {
+          let programText = "AHE";
+          if (s.student_les && s.student_les.length > 0) {
+            const t = s.student_les[0].les_type;
+            if (t === "les_ahe") programText = `AHE Lvl ${s.student_les[0].current_level || 1}`;
+            else if (t === "les_ase") programText = `ASE Lvl ${s.student_les[0].current_level || 1}`;
+            else if (t === "les_mapel") programText = `Mapel (${s.student_les[0].les_mapel_name || "Umum"})`;
+          }
+          const clsName = s.class_members?.[0]?.classes?.name;
+          const subtitle = clsName ? `${programText} • ${clsName}` : programText;
+          return {
+            id: s.id,
+            name: s.full_name,
+            subtitle: `NIS: ${s.nis || "-"} | ${subtitle}`,
+            code: `STU-${s.id}`,
+            photo_url: s.photo_url || "",
+            badge: programText,
+          };
+        })}
+      />
     </div>
   );
 }
