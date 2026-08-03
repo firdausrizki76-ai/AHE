@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search, QrCode, Camera } from "lucide-react";
+import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search, QrCode, Camera, BarChart3, History, Printer, Filter, FileSpreadsheet, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 import BarcodeScannerModal from "@/components/attendance/BarcodeScannerModal";
 
 export default function AbsensiPage() {
+  const [viewMode, setViewMode] = useState<'harian' | 'rekap' | 'riwayat'>('harian');
   const [activeTab, setActiveTab] = useState<'murid' | 'guru'>('murid');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [students, setStudents] = useState<any[]>([]);
@@ -16,6 +17,26 @@ export default function AbsensiPage() {
   const [teacherAttendance, setTeacherAttendance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
+
+  // State Rekap Absensi
+  const [rekapMonth, setRekapMonth] = useState(() => new Date().toISOString().substring(0, 7));
+  const [rekapStudentAtt, setRekapStudentAtt] = useState<any[]>([]);
+  const [rekapTeacherAtt, setRekapTeacherAtt] = useState<any[]>([]);
+  const [rekapSearch, setRekapSearch] = useState("");
+  const [rekapLoading, setRekapLoading] = useState(false);
+
+  // State Riwayat Absensi
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split("T")[0];
+  });
+  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<"all" | "hadir" | "izin" | "alpha">("all");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyStudentAtt, setHistoryStudentAtt] = useState<any[]>([]);
+  const [historyTeacherAtt, setHistoryTeacherAtt] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const [muridData, setMuridData] = useState<any[]>([]);
   const [guruData, setGuruData] = useState<any[]>([]);
@@ -92,6 +113,74 @@ export default function AbsensiPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const fetchRekapData = useCallback(async () => {
+    setRekapLoading(true);
+    try {
+      const startDay = `${rekapMonth}-01`;
+      const endDay = `${rekapMonth}-31`;
+      const { data: sAtt, error: sErr } = await supabase
+        .from("student_attendance")
+        .select("*")
+        .gte("date", startDay)
+        .lte("date", endDay);
+      if (sErr) throw sErr;
+      setRekapStudentAtt(sAtt || []);
+
+      const { data: tAtt, error: tErr } = await supabase
+        .from("teacher_attendance")
+        .select("*")
+        .gte("date", startDay)
+        .lte("date", endDay);
+      if (tErr) throw tErr;
+      setRekapTeacherAtt(tAtt || []);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal memuat data rekap: " + err.message);
+    } finally {
+      setRekapLoading(false);
+    }
+  }, [rekapMonth]);
+
+  useEffect(() => {
+    if (viewMode === "rekap") {
+      fetchRekapData();
+    }
+  }, [viewMode, fetchRekapData]);
+
+  const fetchHistoryData = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const { data: sAtt, error: sErr } = await supabase
+        .from("student_attendance")
+        .select("*, students(full_name, nis, student_les(*), class_members(classes(name)))")
+        .gte("date", historyStartDate)
+        .lte("date", historyEndDate)
+        .order("date", { ascending: false });
+      if (sErr) throw sErr;
+      setHistoryStudentAtt(sAtt || []);
+
+      const { data: tAtt, error: tErr } = await supabase
+        .from("teacher_attendance")
+        .select("*, teachers(full_name, nip, position)")
+        .gte("date", historyStartDate)
+        .lte("date", historyEndDate)
+        .order("date", { ascending: false });
+      if (tErr) throw tErr;
+      setHistoryTeacherAtt(tAtt || []);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Gagal memuat riwayat absensi: " + err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyStartDate, historyEndDate]);
+
+  useEffect(() => {
+    if (viewMode === "riwayat") {
+      fetchHistoryData();
+    }
+  }, [viewMode, fetchHistoryData]);
 
   useEffect(() => {
     setMuridData(
@@ -433,15 +522,495 @@ export default function AbsensiPage() {
     }
   };
 
+  // Compute Rekap List for Murid
+  const muridRekapList = students
+    .map((s) => {
+      const sAtts = rekapStudentAtt.filter((a) => a.student_id === s.id);
+      const hadirCount = sAtts.filter((a) => a.status === "hadir").length;
+      const izinCount = sAtts.filter((a) => a.status === "izin").length;
+      const alphaCount = sAtts.filter((a) => a.status === "alpha").length;
+      const totalDays = hadirCount + izinCount + alphaCount;
+      const percentage = totalDays > 0 ? Math.round((hadirCount / totalDays) * 100) : 0;
+      return {
+        id: s.id,
+        name: s.full_name,
+        nis: s.nis || "-",
+        program: getLesProgramInfo(s),
+        hadir: hadirCount,
+        izin: izinCount,
+        alpha: alphaCount,
+        totalDays,
+        percentage,
+      };
+    })
+    .filter((item) =>
+      item.name.toLowerCase().includes(rekapSearch.toLowerCase()) ||
+      item.nis.toLowerCase().includes(rekapSearch.toLowerCase()) ||
+      item.program.toLowerCase().includes(rekapSearch.toLowerCase())
+    );
+
+  // Compute Rekap List for Guru
+  const guruRekapList = teachers
+    .map((t) => {
+      const tAtts = rekapTeacherAtt.filter((a) => a.teacher_id === t.id);
+      const hadirCount = tAtts.filter((a) => a.status === "hadir").length;
+      const izinCount = tAtts.filter((a) => a.status === "izin").length;
+      const alphaCount = tAtts.filter((a) => a.status === "alpha").length;
+      const totalDays = hadirCount + izinCount + alphaCount;
+      const percentage = totalDays > 0 ? Math.round((hadirCount / totalDays) * 100) : 0;
+      return {
+        id: t.id,
+        name: t.full_name,
+        nip: t.nip || "-",
+        position: t.position || "Guru",
+        hadir: hadirCount,
+        izin: izinCount,
+        alpha: alphaCount,
+        totalDays,
+        percentage,
+      };
+    })
+    .filter((item) =>
+      item.name.toLowerCase().includes(rekapSearch.toLowerCase()) ||
+      item.nip.toLowerCase().includes(rekapSearch.toLowerCase()) ||
+      item.position.toLowerCase().includes(rekapSearch.toLowerCase())
+    );
+
+  // Compute Filtered History List
+  const filteredHistoryList = (activeTab === "murid" ? historyStudentAtt : historyTeacherAtt).filter((item) => {
+    const name = activeTab === "murid"
+      ? (item.students?.full_name || "")
+      : (item.teachers?.full_name || "");
+    const matchSearch = name.toLowerCase().includes(historySearch.toLowerCase());
+    const matchStatus = historyStatusFilter === "all" || item.status === historyStatusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  // Calculate stats for Rekap Bulanan
+  const currentRekapList = activeTab === "murid" ? muridRekapList : guruRekapList;
+  const totalRekapHadir = currentRekapList.reduce((sum, i) => sum + i.hadir, 0);
+  const totalRekapIzin = currentRekapList.reduce((sum, i) => sum + i.izin, 0);
+  const totalRekapAlpha = currentRekapList.reduce((sum, i) => sum + i.alpha, 0);
+  const avgRekapPercentage = currentRekapList.length > 0
+    ? Math.round(currentRekapList.reduce((sum, i) => sum + i.percentage, 0) / currentRekapList.length)
+    : 0;
+
   return (
     <div className="space-y-8 font-body-md">
       <div>
-        <h2 className="text-headline-lg font-headline-lg text-on-surface">Rekap Absensi</h2>
-        <p className="text-body-md text-on-surface-variant mt-1">Kelola dan pantau kehadiran murid serta guru via Scan Barcode.</p>
+        <h2 className="text-headline-lg font-headline-lg text-on-surface">Manajemen Absensi & Kehadiran</h2>
+        <p className="text-body-md text-on-surface-variant mt-1">Kelola absensi harian, rekapitulasi bulanan, dan riwayat kehadiran murid & guru.</p>
       </div>
 
-      {/* SCANNER BARCODE CARD (HERO SECTION) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 border-2 border-amber-500/30 shadow-md dark:from-amber-500/20 dark:to-transparent">
+      {/* Top Level Mode Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface p-2 rounded-2xl border border-outline-variant shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setViewMode("harian")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "harian"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <QrCode className="w-4 h-4" />
+            Absensi Harian & Scan
+          </button>
+          <button
+            onClick={() => setViewMode("rekap")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "rekap"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Rekap Absensi (Bulanan)
+          </button>
+          <button
+            onClick={() => setViewMode("riwayat")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "riwayat"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <History className="w-4 h-4" />
+            History / Riwayat Absensi
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 px-2">
+          <button
+            onClick={() => {
+              setBarcodeModalType("siswa");
+              setIsBarcodeModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-400"
+          >
+            <QrCode className="h-3.5 w-3.5" /> Cetak Kartu Siswa
+          </button>
+          <button
+            onClick={() => {
+              setBarcodeModalType("guru");
+              setIsBarcodeModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-surface-container px-3 py-1.5 text-xs font-bold text-on-surface-variant hover:bg-surface-container-high"
+          >
+            <QrCode className="h-3.5 w-3.5" /> Cetak Kartu Guru
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "rekap" && (
+        <div className="space-y-6">
+          {/* Rekap Toolbar */}
+          <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <div className="flex bg-surface-container-lowest p-1 rounded-xl">
+                <button
+                  onClick={() => setActiveTab("murid")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    activeTab === "murid"
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  <Users className="w-4 h-4" /> Rekap Murid
+                </button>
+                <button
+                  onClick={() => setActiveTab("guru")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    activeTab === "guru"
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4" /> Rekap Guru
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold text-on-surface-variant">Bulan:</span>
+                <input
+                  type="month"
+                  value={rekapMonth}
+                  onChange={(e) => setRekapMonth(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-on-surface focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+              <div className="relative flex-1 md:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  type="text"
+                  placeholder="Cari nama atau program..."
+                  value={rekapSearch}
+                  onChange={(e) => setRekapSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-outline-variant text-sm font-medium bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary-container text-on-secondary-container rounded-xl font-bold text-sm hover:bg-secondary-container/80 transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Cetak Rekap
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Cards for Rekap */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+              <p className="text-xs text-on-surface-variant font-bold">Rata-rata Kehadiran</p>
+              <h3 className="text-2xl font-bold text-primary mt-1">{rekapLoading ? "..." : `${avgRekapPercentage}%`}</h3>
+            </div>
+            <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+              <p className="text-xs text-on-surface-variant font-bold">Total Hadir (H)</p>
+              <h3 className="text-2xl font-bold text-emerald-600 mt-1">{rekapLoading ? "..." : totalRekapHadir}</h3>
+            </div>
+            <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+              <p className="text-xs text-on-surface-variant font-bold">Total Izin / Sakit (I)</p>
+              <h3 className="text-2xl font-bold text-amber-600 mt-1">{rekapLoading ? "..." : totalRekapIzin}</h3>
+            </div>
+            <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+              <p className="text-xs text-on-surface-variant font-bold">Total Alpha (A)</p>
+              <h3 className="text-2xl font-bold text-rose-600 mt-1">{rekapLoading ? "..." : totalRekapAlpha}</h3>
+            </div>
+          </div>
+
+          {/* Table Rekap */}
+          <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
+            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex justify-between items-center">
+              <h3 className="text-base font-bold text-on-surface">
+                Rekap Kehadiran Bulanan — {activeTab === "murid" ? "Murid" : "Guru"} ({rekapMonth})
+              </h3>
+              <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                {currentRekapList.length} {activeTab === "murid" ? "Murid" : "Guru"}
+              </span>
+            </div>
+
+            {rekapLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center text-on-surface-variant gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="font-bold text-sm">Memuat rekap absensi bulanan...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-surface-container-lowest border-b border-surface-container">
+                      <th className="p-4 font-bold text-on-surface-variant">Nama {activeTab === "murid" ? "Murid" : "Guru"}</th>
+                      <th className="p-4 font-bold text-on-surface-variant">{activeTab === "murid" ? "Program / Kelas" : "Jabatan"}</th>
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Hadir (H)</th>
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Izin / Sakit (I)</th>
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Alpha (A)</th>
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Total Pertemuan</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Persentase Kehadiran</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRekapList.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-on-surface-variant">
+                          Tidak ada data untuk periode {rekapMonth}
+                        </td>
+                      </tr>
+                    ) : (
+                      currentRekapList.map((item: any) => (
+                        <tr key={item.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
+                          <td className="p-4">
+                            <div className="font-bold text-on-surface">{item.name}</div>
+                            <div className="text-xs text-on-surface-variant">{activeTab === "murid" ? `NIS: ${item.nis}` : `NIP: ${item.nip}`}</div>
+                          </td>
+                          <td className="p-4">
+                            <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold">
+                              {activeTab === "murid" ? item.program : item.position}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                              {item.hadir}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
+                              {item.izin}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200">
+                              {item.alpha}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center font-bold text-on-surface">
+                            {item.totalDays} Hari
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-surface-container-highest h-2.5 rounded-full overflow-hidden w-24">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    item.percentage >= 80
+                                      ? "bg-emerald-500"
+                                      : item.percentage >= 60
+                                      ? "bg-amber-500"
+                                      : "bg-rose-500"
+                                  }`}
+                                  style={{ width: `${Math.min(100, item.percentage)}%` }}
+                                />
+                              </div>
+                              <span className="font-bold text-xs w-10 text-right">{item.percentage}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "riwayat" && (
+        <div className="space-y-6">
+          {/* Riwayat Toolbar */}
+          <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm">
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+              <div className="flex bg-surface-container-lowest p-1 rounded-xl">
+                <button
+                  onClick={() => setActiveTab("murid")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    activeTab === "murid"
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  <Users className="w-4 h-4" /> Riwayat Murid
+                </button>
+                <button
+                  onClick={() => setActiveTab("guru")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                    activeTab === "guru"
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface"
+                  }`}
+                >
+                  <GraduationCap className="w-4 h-4" /> Riwayat Guru
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-bold">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span>Dari:</span>
+                <input
+                  type="date"
+                  value={historyStartDate}
+                  onChange={(e) => setHistoryStartDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                />
+                <span>s/d:</span>
+                <input
+                  type="date"
+                  value={historyEndDate}
+                  onChange={(e) => setHistoryEndDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant">
+                <Filter className="w-3.5 h-3.5 text-on-surface-variant" />
+                <select
+                  value={historyStatusFilter}
+                  onChange={(e: any) => setHistoryStatusFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="hadir">Hadir</option>
+                  <option value="izin">Izin</option>
+                  <option value="alpha">Alpha</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+              <div className="relative flex-1 lg:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  type="text"
+                  placeholder="Cari nama di riwayat..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-outline-variant text-sm font-medium bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary-container text-on-secondary-container rounded-xl font-bold text-sm hover:bg-secondary-container/80 transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Cetak Riwayat
+              </button>
+            </div>
+          </div>
+
+          {/* Table Riwayat */}
+          <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
+            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex justify-between items-center">
+              <h3 className="text-base font-bold text-on-surface">
+                Log Riwayat Kehadiran — {activeTab === "murid" ? "Murid" : "Guru"}
+              </h3>
+              <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                {filteredHistoryList.length} Catatan
+              </span>
+            </div>
+
+            {historyLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center text-on-surface-variant gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="font-bold text-sm">Memuat riwayat absensi...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-surface-container-lowest border-b border-surface-container">
+                      <th className="p-4 font-bold text-on-surface-variant">Tanggal</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Nama {activeTab === "murid" ? "Murid" : "Guru"}</th>
+                      <th className="p-4 font-bold text-on-surface-variant">{activeTab === "murid" ? "Program / Kelas" : "Jabatan"}</th>
+                      {activeTab === "guru" && <th className="p-4 font-bold text-on-surface-variant">Jam Masuk</th>}
+                      {activeTab === "guru" && <th className="p-4 font-bold text-on-surface-variant">Jam Keluar</th>}
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredHistoryList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-on-surface-variant">
+                          Tidak ada catatan riwayat absensi dengan filter saat ini
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredHistoryList.map((item: any) => {
+                        const name = activeTab === "murid"
+                          ? (item.students?.full_name || "Siswa")
+                          : (item.teachers?.full_name || "Guru");
+                        const programOrRole = activeTab === "murid"
+                          ? (item.les_type === "les_ahe" ? "AHE" : item.les_type === "les_ase" ? "ASE" : "Mapel")
+                          : (item.teachers?.position || "Guru");
+                        const dateFormatted = new Date(item.date).toLocaleDateString("id-ID", {
+                          weekday: "short",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        });
+
+                        return (
+                          <tr key={item.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
+                            <td className="p-4 font-medium text-on-surface">{dateFormatted}</td>
+                            <td className="p-4 font-bold text-on-surface">{name}</td>
+                            <td className="p-4">
+                              <span className="inline-block px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold">
+                                {programOrRole}
+                              </span>
+                            </td>
+                            {activeTab === "guru" && <td className="p-4 font-medium">{item.check_in_time || "-"}</td>}
+                            {activeTab === "guru" && <td className="p-4 font-medium">{item.check_out_time || "-"}</td>}
+                            <td className="p-4 text-center">
+                              {item.status === "hadir" ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle className="w-3.5 h-3.5" /> Hadir
+                                </span>
+                              ) : item.status === "izin" ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                  <Clock className="w-3.5 h-3.5" /> Izin / Sakit
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <XCircle className="w-3.5 h-3.5" /> Alpha
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {viewMode === "harian" && (
+        <>
+          {/* SCANNER BARCODE CARD (HERO SECTION) */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent p-6 border-2 border-amber-500/30 shadow-md dark:from-amber-500/20 dark:to-transparent">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full bg-amber-500 px-3 py-1 text-xs font-extrabold text-white shadow-sm">
@@ -684,6 +1253,8 @@ export default function AbsensiPage() {
           </button>
         </div>
       </div>
+        </>
+      )}
 
       <BarcodeScannerModal
         isOpen={isScannerOpen}

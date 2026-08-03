@@ -50,12 +50,62 @@ export default function BarcodeCardModal({
     window.print();
   };
 
+  const printStyles = `
+    @media print {
+      body * {
+        visibility: hidden !important;
+      }
+      #printable-barcode-area,
+      #printable-barcode-area * {
+        visibility: visible !important;
+      }
+      #printable-barcode-area {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+        padding: 8px !important;
+        width: 100% !important;
+      }
+      .print-card {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        border: 2px solid #cbd5e1 !important;
+        border-radius: 12px !important;
+        background: white !important;
+        box-shadow: none !important;
+        padding: 12px !important;
+      }
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+    }
+  `;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm print:static print:bg-transparent print:p-0">
-      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900 print:max-h-none print:w-full print:max-w-none print:overflow-visible print:rounded-none print:shadow-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <style dangerouslySetInnerHTML={{ __html: printStyles }} />
+      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
         
         {/* Header - Hidden when printing */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800 print:hidden">
+        <div className="no-print flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:bg-amber-500/20">
               <QrCode className="h-5 w-5" />
@@ -88,7 +138,7 @@ export default function BarcodeCardModal({
         </div>
 
         {/* Toolbar Filter & Search - Hidden when printing */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-6 py-3 dark:border-slate-800 dark:bg-slate-800/40 print:hidden">
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 px-6 py-3 dark:border-slate-800 dark:bg-slate-800/40">
           <div className="relative w-full max-w-xs">
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
@@ -120,9 +170,19 @@ export default function BarcodeCardModal({
         </div>
 
         {/* Card Content Area (Scrollable in Modal, All shown when printing) */}
-        <div className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
+        <div id="printable-barcode-area" className="flex-1 overflow-y-auto p-6">
+          {/* Printable Header shown ONLY when printing */}
+          <div className="hidden print:block mb-6 text-center border-b-2 border-slate-300 pb-4">
+            <h1 className="text-xl font-bold uppercase tracking-wide text-black">
+              KARTU ABSENSI • {type === "siswa" ? "MURID / SISWA" : "GURU"} AHE
+            </h1>
+            <p className="text-xs text-slate-600 mt-1">
+              Dicetak pada {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })} • Total {filteredItems.length} Kartu
+            </p>
+          </div>
+
           {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center print:hidden">
+            <div className="no-print flex flex-col items-center justify-center py-16 text-center">
               <CreditCard className="mb-3 h-12 w-12 text-slate-300" />
               <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">
                 Data kartu tidak ditemukan
@@ -132,14 +192,14 @@ export default function BarcodeCardModal({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 print:grid-cols-3 print:gap-4 print:p-4">
+            <div className="print-grid grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
-                  className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-800/80 print:break-inside-avoid print:rounded-xl print:border-2 print:border-slate-300 print:bg-white print:p-3 print:shadow-none"
+                  className="print-card group relative flex flex-col items-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-800/80"
                 >
                   {/* Decorative Banner Header */}
-                  <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-amber-500 to-amber-600 print:h-2" />
+                  <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-amber-500 to-amber-600" />
 
                   {/* Institution Badge */}
                   <div className="mt-1 flex items-center justify-center gap-1">
@@ -187,10 +247,10 @@ export default function BarcodeCardModal({
                   <div className="flex w-full items-center justify-center overflow-hidden bg-white print:py-1">
                     <Barcode
                       value={item.code}
-                      width={1.4}
+                      width={1.2}
                       height={36}
-                      fontSize={11}
-                      margin={0}
+                      fontSize={10}
+                      margin={2}
                       displayValue={true}
                     />
                   </div>
@@ -204,29 +264,6 @@ export default function BarcodeCardModal({
             </div>
           )}
         </div>
-
-        {/* Print Styles Overlay */}
-        <style jsx global>{`
-          @media print {
-            body * {
-              visibility: hidden;
-            }
-            .print\\:static,
-            .print\\:static * {
-              visibility: visible;
-            }
-            .print\\:static {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
-            }
-            @page {
-              size: A4;
-              margin: 10mm;
-            }
-          }
-        `}</style>
       </div>
     </div>
   );

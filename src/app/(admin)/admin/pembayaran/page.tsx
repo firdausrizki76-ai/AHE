@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Search, CheckCircle, XCircle, FileText, Plus, ArrowUpRight, X, AlertCircle, Loader2 } from "lucide-react";
+import { Wallet, Search, CheckCircle, XCircle, FileText, Plus, ArrowUpRight, X, AlertCircle, Loader2, History, Printer, Filter, Calendar, CreditCard, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 
 export default function PembayaranPage() {
+  const [viewMode, setViewMode] = useState<'tagihan' | 'riwayat'>('tagihan');
   const [bills, setBills] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<any[]>([]);
@@ -14,6 +15,23 @@ export default function PembayaranPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create'|'pay'>('create');
+
+  // Filter Tagihan state
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid' | 'overdue'>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [monthFilter, setMonthFilter] = useState<string>('all');
+
+  // History / Riwayat Pembayaran state
+  const [historyTransactions, setHistoryTransactions] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyStartDate, setHistoryStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyMethodFilter, setHistoryMethodFilter] = useState<'all' | 'tunai' | 'transfer' | 'tabungan'>('all');
+  const [historySearch, setHistorySearch] = useState('');
   
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
   
@@ -85,11 +103,112 @@ export default function PembayaranPage() {
     fetchStudentsAndTypes();
   }, [fetchBills]);
 
-  const filteredBills = bills.filter(b => 
-    b.students?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    b.payment_transactions?.[0]?.receipt_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    b.id.substring(0, 8).toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const fetchHistoryTransactions = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("payment_transactions")
+        .select(`
+          *,
+          students (full_name, nis),
+          payment_bills (
+            bill_month,
+            due_date,
+            payment_types (name, les_type)
+          )
+        `)
+        .gte("paid_at", `${historyStartDate}T00:00:00`)
+        .lte("paid_at", `${historyEndDate}T23:59:59`)
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      setHistoryTransactions(data || []);
+    } catch (err: any) {
+      toast.error("Gagal memuat riwayat pembayaran: " + err.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [historyStartDate, historyEndDate]);
+
+  useEffect(() => {
+    if (viewMode === "riwayat") {
+      fetchHistoryTransactions();
+    }
+  }, [viewMode, fetchHistoryTransactions]);
+
+  const filteredBills = bills.filter(b => {
+    const matchSearch = (b.students?.full_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        (b.payment_transactions?.[0]?.receipt_number || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        b.id.substring(0, 8).toLowerCase().includes(searchQuery.toLowerCase());
+    const isOverdue = b.status === "unpaid" && new Date(b.due_date) < new Date();
+    const matchStatus = statusFilter === "all" ? true :
+                        statusFilter === "overdue" ? isOverdue :
+                        b.status === statusFilter;
+    const matchType = typeFilter === "all" || b.payment_type_id === typeFilter;
+    const matchMonth = !monthFilter || monthFilter === "all" || (b.bill_month && b.bill_month.startsWith(monthFilter));
+    return matchSearch && matchStatus && matchType && matchMonth;
+  });
+
+  const filteredHistoryTransactions = historyTransactions.filter((tx) => {
+    const studentName = tx.students?.full_name || students.find(s => s.id === tx.student_id)?.full_name || "";
+    const receipt = tx.receipt_number || "";
+    const notes = tx.notes || "";
+    const matchSearch =
+      studentName.toLowerCase().includes(historySearch.toLowerCase()) ||
+      receipt.toLowerCase().includes(historySearch.toLowerCase()) ||
+      notes.toLowerCase().includes(historySearch.toLowerCase());
+    const matchMethod = historyMethodFilter === "all" || tx.payment_method === historyMethodFilter;
+    return matchSearch && matchMethod;
+  });
+
+  const handleReprintReceipt = (tx: any) => {
+    const receiptNum = tx.receipt_number || `KWT-${tx.id.substring(0, 8)}`;
+    const studentName = tx.students?.full_name || students.find(s => s.id === tx.student_id)?.full_name || "Siswa";
+    const amount = parseFloat(tx.amount || 0);
+    const paymentFor = tx.payment_bills?.payment_types?.name || "Pembayaran SPP/Tagihan";
+    const notesStr = tx.notes ? `(${tx.notes})` : "";
+    const methodLabel = tx.payment_method === 'tabungan' ? 'Potong Tabungan' : tx.payment_method === 'transfer' ? 'Transfer Bank' : 'Tunai / Cash';
+    const dateStr = new Date(tx.paid_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Kwitansi - ${receiptNum}</title>
+            <style>
+              body { font-family: 'Courier New', Courier, monospace; padding: 20px; }
+              .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 20px; }
+              .title { font-size: 18pt; font-weight: bold; }
+              .receipt-no { font-size: 11pt; margin-top: 5px; }
+              .row { display: flex; margin-bottom: 10px; font-size: 12pt; }
+              .label { width: 180px; }
+              .value { font-weight: bold; }
+              .amount-box { border: 2px solid #000; padding: 10px 15px; font-size: 16pt; font-weight: bold; display: inline-block; margin-top: 15px; }
+              .footer { margin-top: 40px; text-align: right; font-size: 11pt; }
+              .signature { margin-top: 50px; font-weight: bold; text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <div class="title">AHE TEPUS WETAN</div>
+              <div>Pusat Les AHE, ASE & Mapel</div>
+              <div class="receipt-no">KWITANSI: ${receiptNum}</div>
+            </div>
+            <div class="row"><div class="label">Diterima Dari:</div><div class="value">${studentName.toUpperCase()}</div></div>
+            <div class="row"><div class="label">Untuk Pembayaran:</div><div class="value">${paymentFor.toUpperCase()} ${notesStr}</div></div>
+            <div class="row"><div class="label">Metode Pembayaran:</div><div class="value">${methodLabel}</div></div>
+            <div class="amount-box">RP ${amount.toLocaleString('id-ID')},-</div>
+            <div class="footer">
+              <div>Tepus Wetan, ${dateStr}</div>
+              <div class="signature">Administrasi AHE</div>
+            </div>
+            <script>window.onload = function() { window.print(); window.close(); };</script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
 
   // Revenue current month
   const currentMonth = new Date().getMonth();
@@ -400,8 +519,38 @@ export default function PembayaranPage() {
         </button>
       </div>
 
-      {/* Stats Bento */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Top Level Mode Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface p-2 rounded-2xl border border-outline-variant shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setViewMode("tagihan")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "tagihan"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <Wallet className="w-4 h-4" />
+            Daftar Tagihan & SPP
+          </button>
+          <button
+            onClick={() => setViewMode("riwayat")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "riwayat"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <History className="w-4 h-4" />
+            History / Riwayat Transaksi
+          </button>
+        </div>
+      </div>
+
+      {viewMode === "tagihan" && (
+        <>
+          {/* Stats Bento */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant flex items-center gap-4">
           <div className="p-4 bg-tertiary-container text-on-tertiary-container rounded-xl">
             <ArrowUpRight className="w-8 h-8" />
@@ -431,17 +580,70 @@ export default function PembayaranPage() {
       </div>
 
       <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
-        <div className="p-6 border-b border-surface-container bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-headline-sm font-headline-sm text-on-surface">Riwayat Pembayaran</h3>
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-            <input 
-              type="text" 
-              placeholder="Cari nama atau invoice..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface text-on-surface w-full sm:w-64"
-            />
+        {/* Advanced Filter Toolbar for Tagihan */}
+        <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <h3 className="text-base font-bold text-on-surface mr-2">Daftar Tagihan & Status</h3>
+            {/* Status Filter */}
+            <div className="flex items-center gap-1 bg-surface px-3 py-1.5 rounded-xl border border-outline-variant">
+              <Filter className="w-3.5 h-3.5 text-on-surface-variant" />
+              <select
+                value={statusFilter}
+                onChange={(e: any) => setStatusFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+              >
+                <option value="all">Semua Status</option>
+                <option value="unpaid">Belum Bayar</option>
+                <option value="paid">Lunas</option>
+                <option value="overdue">Jatuh Tempo</option>
+              </select>
+            </div>
+            {/* Jenis Tagihan Filter */}
+            <div className="flex items-center gap-1 bg-surface px-3 py-1.5 rounded-xl border border-outline-variant">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold text-on-surface focus:outline-none max-w-[150px]"
+              >
+                <option value="all">Semua Jenis Tagihan</option>
+                {paymentTypes.map((pt) => (
+                  <option key={pt.id} value={pt.id}>{pt.name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Bulan Filter */}
+            <div className="flex items-center gap-1 bg-surface px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-bold">
+              <Calendar className="w-3.5 h-3.5 text-primary" />
+              <span>Bulan:</span>
+              <input
+                type="month"
+                value={monthFilter === "all" ? "" : monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value || "all")}
+                className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+              />
+              {monthFilter !== "all" && (
+                <button onClick={() => setMonthFilter("all")} className="text-error font-bold ml-1 text-xs">✕</button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+            <div className="relative flex-1 lg:w-64">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+              <input
+                type="text"
+                placeholder="Cari nama atau invoice..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-outline-variant text-sm font-medium bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-4 py-2 bg-secondary-container text-on-secondary-container rounded-xl font-bold text-sm hover:bg-secondary-container/80 transition-colors"
+            >
+              <Printer className="w-4 h-4" /> Cetak Tagihan
+            </button>
           </div>
         </div>
         
@@ -522,7 +724,7 @@ export default function PembayaranPage() {
                 {filteredBills.length === 0 && (
                   <tr>
                     <td colSpan={8} className="p-8 text-center text-on-surface-variant">
-                      Tidak ada data transaksi yang sesuai pencarian.
+                      Tidak ada data tagihan yang sesuai filter saat ini.
                     </td>
                   </tr>
                 )}
@@ -531,6 +733,159 @@ export default function PembayaranPage() {
           </div>
         )}
       </div>
+        </>
+      )}
+
+      {viewMode === "riwayat" && (
+        <div className="space-y-6">
+          {/* Riwayat Toolbar */}
+          <div className="flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm">
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+              <div className="flex flex-wrap items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant text-xs font-bold">
+                <Calendar className="w-4 h-4 text-primary" />
+                <span>Dari:</span>
+                <input
+                  type="date"
+                  value={historyStartDate}
+                  onChange={(e) => setHistoryStartDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                />
+                <span>s/d:</span>
+                <input
+                  type="date"
+                  value={historyEndDate}
+                  onChange={(e) => setHistoryEndDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant">
+                <Filter className="w-3.5 h-3.5 text-on-surface-variant" />
+                <select
+                  value={historyMethodFilter}
+                  onChange={(e: any) => setHistoryMethodFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-on-surface focus:outline-none"
+                >
+                  <option value="all">Semua Metode</option>
+                  <option value="tunai">Tunai / Cash</option>
+                  <option value="transfer">Transfer Bank</option>
+                  <option value="tabungan">Potong Tabungan</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+              <div className="relative flex-1 lg:w-64">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  type="text"
+                  placeholder="Cari siswa atau no. kwitansi..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-outline-variant text-sm font-medium bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary-container text-on-secondary-container rounded-xl font-bold text-sm hover:bg-secondary-container/80 transition-colors"
+              >
+                <Printer className="w-4 h-4" /> Cetak Riwayat
+              </button>
+            </div>
+          </div>
+
+          {/* Table Riwayat Pembayaran */}
+          <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
+            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex justify-between items-center">
+              <h3 className="text-base font-bold text-on-surface">
+                Riwayat Transaksi Pembayaran
+              </h3>
+              <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                {filteredHistoryTransactions.length} Transaksi
+              </span>
+            </div>
+
+            {historyLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center text-on-surface-variant gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <p className="font-bold text-sm">Memuat riwayat transaksi...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-surface-container-lowest border-b border-surface-container">
+                      <th className="p-4 font-bold text-on-surface-variant">Waktu Bayar</th>
+                      <th className="p-4 font-bold text-on-surface-variant">No. Kwitansi</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Nama Siswa</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Untuk Tagihan</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Metode</th>
+                      <th className="p-4 font-bold text-on-surface-variant">Nominal</th>
+                      <th className="p-4 font-bold text-on-surface-variant text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredHistoryTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-on-surface-variant">
+                          Tidak ada catatan riwayat transaksi dengan filter saat ini.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredHistoryTransactions.map((tx: any) => {
+                        const studentName = tx.students?.full_name || students.find(s => s.id === tx.student_id)?.full_name || "Siswa";
+                        const nis = tx.students?.nis || "-";
+                        const paymentFor = tx.payment_bills?.payment_types?.name || "SPP / Tagihan";
+                        const dateFormatted = new Date(tx.paid_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+
+                        return (
+                          <tr key={tx.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
+                            <td className="p-4 font-medium text-on-surface">{dateFormatted}</td>
+                            <td className="p-4 font-mono font-bold text-primary">{tx.receipt_number || "-"}</td>
+                            <td className="p-4">
+                              <div className="font-bold text-on-surface">{studentName}</div>
+                              <div className="text-xs text-on-surface-variant">NIS: {nis}</div>
+                            </td>
+                            <td className="p-4 font-medium text-on-surface">{paymentFor}</td>
+                            <td className="p-4">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
+                                  tx.payment_method === "tunai"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : tx.payment_method === "transfer"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}
+                              >
+                                {tx.payment_method === "tunai" ? "Tunai" : tx.payment_method === "transfer" ? "Transfer" : "Tabungan"}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-on-surface">Rp {parseFloat(tx.amount || 0).toLocaleString("id-ID")}</td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleReprintReceipt(tx)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary-container text-on-secondary-container hover:bg-secondary-container/80 rounded-lg transition-colors text-xs font-bold"
+                              >
+                                <Printer className="w-3.5 h-3.5" /> Kwitansi
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Pembayaran Modal */}
       {isModalOpen && (
