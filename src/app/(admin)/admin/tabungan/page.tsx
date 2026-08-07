@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2 } from "lucide-react";
+import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import Link from "next/link";
 
 export default function TabunganPage() {
   const [savings, setSavings] = useState<any[]>([]);
@@ -88,11 +89,11 @@ export default function TabunganPage() {
 
   const totalSavings = savings.reduce((sum, s) => sum + parseFloat(s.balance || "0"), 0);
 
-  const openModal = (type: 'deposit'|'withdraw') => {
+  const openModal = (type: 'deposit'|'withdraw', studentId?: string) => {
     setTransactionType(type);
-    const firstStudent = students[0];
+    const selectedStudent = studentId ? students.find(s => s.id === studentId) : students[0];
     setFormData({
-      student_id: firstStudent?.id || "",
+      student_id: selectedStudent?.id || "",
       created_at: new Date().toISOString().split('T')[0],
       amount: "",
       description: type === 'deposit' ? 'Setoran Tabungan' : 'Penarikan Tabungan'
@@ -186,7 +187,10 @@ export default function TabunganPage() {
           <h2 className="text-headline-lg font-headline-lg text-on-surface">Tabungan Murid</h2>
           <p className="text-body-md text-on-surface-variant mt-1">Kelola simpanan dan penarikan uang tabungan murid.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/admin/tabungan/mutasi" className="inline-flex items-center gap-2 bg-surface border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-headline-sm hover:bg-surface-container transition-colors shadow-sm w-fit">
+            <Search className="w-5 h-5 text-primary" /> Semua Mutasi
+          </Link>
           <button onClick={() => openModal('withdraw')} className="inline-flex items-center gap-2 bg-surface border border-outline-variant text-on-surface px-6 py-3 rounded-xl font-headline-sm hover:bg-surface-container transition-colors shadow-sm w-fit">
             <ArrowDownRight className="w-5 h-5 text-error" /> Tarik
           </button>
@@ -239,6 +243,7 @@ export default function TabunganPage() {
                     <th className="p-4 font-label-md text-on-surface-variant">Nama Murid</th>
                     <th className="p-4 font-label-md text-on-surface-variant">Kelas / Program</th>
                     <th className="p-4 font-label-md text-on-surface-variant text-right">Saldo Saat Ini</th>
+                    <th className="p-4 font-label-md text-on-surface-variant text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -251,11 +256,24 @@ export default function TabunganPage() {
                         </span>
                       </td>
                       <td className="p-4 font-bold text-on-surface text-right text-lg">Rp {parseFloat(item.balance || "0").toLocaleString('id-ID')}</td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link href={`/admin/tabungan/mutasi?q=${encodeURIComponent(item.students?.full_name || '')}`} className="p-2 bg-surface border border-outline-variant rounded-lg text-on-surface-variant hover:text-primary hover:border-primary transition-colors tooltip-trigger" title="Riwayat">
+                            <History className="w-4 h-4" />
+                          </Link>
+                          <button onClick={() => openModal('deposit', item.students?.id)} className="p-2 bg-surface border border-outline-variant rounded-lg text-on-surface-variant hover:text-[#25D366] hover:border-[#25D366] transition-colors tooltip-trigger" title="Tabung / Setor">
+                            <ArrowUpRight className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => openModal('withdraw', item.students?.id)} className="p-2 bg-surface border border-outline-variant rounded-lg text-on-surface-variant hover:text-error hover:border-error transition-colors tooltip-trigger" title="Tarik">
+                            <ArrowDownRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {filteredSavings.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="p-8 text-center text-on-surface-variant">
+                      <td colSpan={4} className="p-8 text-center text-on-surface-variant">
                         Tidak ada data saldo yang sesuai pencarian.
                       </td>
                     </tr>
@@ -338,6 +356,19 @@ export default function TabunganPage() {
                     })}
                   </select>
                 </div>
+                
+                {formData.student_id && (
+                  <div className="p-4 rounded-xl bg-primary-container/20 border border-primary/20 flex justify-between items-center">
+                    <span className="text-label-md font-bold text-on-surface-variant">Saldo Terakhir:</span>
+                    <span className="text-headline-sm font-headline-sm text-primary">
+                      Rp {(() => {
+                        const s = students.find(x => x.id === formData.student_id);
+                        return (s?.savings_accounts?.[0]?.balance ? parseFloat(s.savings_accounts[0].balance) : 0).toLocaleString('id-ID');
+                      })()}
+                    </span>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="text-label-md font-bold text-on-surface">Tanggal Transaksi</label>
                   <input 
