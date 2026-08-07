@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2, History } from "lucide-react";
+import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2, History, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -180,6 +180,62 @@ export default function TabunganPage() {
     }
   };
 
+  const handleDeleteTransaction = async (txId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini? Saldo tabungan murid akan dikembalikan seperti semula.")) return;
+    
+    const tx = history.find(t => t.id === txId);
+    if (!tx) return;
+    
+    setLoading(true);
+    try {
+      const txAmount = parseFloat(tx.amount);
+      const isDeposit = tx.type === 'deposit';
+      
+      // Get current balance
+      const { data: savData, error: savErr } = await supabase
+        .from("savings_accounts")
+        .select("balance")
+        .eq("id", tx.savings_id)
+        .single();
+        
+      if (savErr) throw savErr;
+      
+      const currentBalance = parseFloat(savData.balance || "0");
+      let newBalance = currentBalance;
+      
+      // Revert the transaction
+      if (isDeposit) {
+        newBalance = currentBalance - txAmount;
+      } else {
+        newBalance = currentBalance + txAmount;
+      }
+      
+      // 1. Update savings_accounts balance
+      const { error: accErr } = await supabase
+        .from("savings_accounts")
+        .update({
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", tx.savings_id);
+      if (accErr) throw accErr;
+      
+      // 2. Delete transaction
+      const { error: delErr } = await supabase
+        .from("savings_transactions")
+        .delete()
+        .eq("id", txId);
+      if (delErr) throw delErr;
+      
+      toast.success("Transaksi berhasil dihapus dan saldo telah diperbarui.");
+      fetchSavingsData();
+    } catch (err: any) {
+      toast.error("Gagal menghapus transaksi: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 font-body-md relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -306,10 +362,13 @@ export default function TabunganPage() {
                       </p>
                       <p className="text-[10px] text-on-surface-variant">{new Date(item.created_at).toLocaleDateString('id-ID')}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center gap-2">
                       <p className={`font-bold ${isDeposit ? 'text-[#25D366]' : 'text-error'}`}>
                         {isDeposit ? '+' : '-'}Rp {parseFloat(item.amount).toLocaleString('id-ID')}
                       </p>
+                      <button onClick={() => handleDeleteTransaction(item.id)} className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors tooltip-trigger" title="Hapus Transaksi">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -345,9 +404,8 @@ export default function TabunganPage() {
                   >
                     <option value="" disabled>-- Pilih Murid --</option>
                     {students.map(s => {
-                      const balance = s.savings_accounts?.[0]?.balance 
-                        ? parseFloat(s.savings_accounts[0].balance) 
-                        : 0;
+                      const savingAccount = savings.find(sav => sav.student_id === s.id);
+                      const balance = savingAccount ? parseFloat(savingAccount.balance || "0") : 0;
                       return (
                         <option key={s.id} value={s.id}>
                           {s.full_name} (Saldo: Rp {balance.toLocaleString('id-ID')})
@@ -362,8 +420,8 @@ export default function TabunganPage() {
                     <span className="text-label-md font-bold text-on-surface-variant">Saldo Terakhir:</span>
                     <span className="text-headline-sm font-headline-sm text-primary">
                       Rp {(() => {
-                        const s = students.find(x => x.id === formData.student_id);
-                        return (s?.savings_accounts?.[0]?.balance ? parseFloat(s.savings_accounts[0].balance) : 0).toLocaleString('id-ID');
+                        const savingAccount = savings.find(sav => sav.student_id === formData.student_id);
+                        return (savingAccount ? parseFloat(savingAccount.balance || "0") : 0).toLocaleString('id-ID');
                       })()}
                     </span>
                   </div>

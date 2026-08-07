@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { Search, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, Download } from "lucide-react";
+import { Search, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -46,6 +46,57 @@ function MutasiContent() {
   useEffect(() => {
     fetchHistory();
   }, [fetchHistory]);
+
+  const handleDeleteTransaction = async (txId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus transaksi ini? Saldo tabungan murid akan dikembalikan seperti semula.")) return;
+    
+    const tx = history.find(t => t.id === txId);
+    if (!tx) return;
+    
+    setLoading(true);
+    try {
+      const txAmount = parseFloat(tx.amount);
+      const isDeposit = tx.type === 'deposit';
+      
+      const { data: savData, error: savErr } = await supabase
+        .from("savings_accounts")
+        .select("balance")
+        .eq("id", tx.savings_id)
+        .single();
+        
+      if (savErr) throw savErr;
+      
+      const currentBalance = parseFloat(savData.balance || "0");
+      let newBalance = currentBalance;
+      
+      if (isDeposit) {
+        newBalance = currentBalance - txAmount;
+      } else {
+        newBalance = currentBalance + txAmount;
+      }
+      
+      const { error: accErr } = await supabase
+        .from("savings_accounts")
+        .update({
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", tx.savings_id);
+      if (accErr) throw accErr;
+      
+      const { error: delErr } = await supabase
+        .from("savings_transactions")
+        .delete()
+        .eq("id", txId);
+      if (delErr) throw delErr;
+      
+      toast.success("Transaksi berhasil dihapus dan saldo telah diperbarui.");
+      fetchHistory();
+    } catch (err: any) {
+      toast.error("Gagal menghapus transaksi: " + err.message);
+      setLoading(false);
+    }
+  };
 
   const filteredHistory = history.filter(item => 
     item.students?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -114,6 +165,7 @@ function MutasiContent() {
                   <th className="p-4 font-label-md text-on-surface-variant">Keterangan</th>
                   <th className="p-4 font-label-md text-on-surface-variant text-right">Nominal</th>
                   <th className="p-4 font-label-md text-on-surface-variant text-right">Saldo Setelahnya</th>
+                  <th className="p-4 font-label-md text-on-surface-variant text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,12 +194,17 @@ function MutasiContent() {
                       <td className="p-4 font-bold text-on-surface text-right">
                         Rp {parseFloat(item.balance_after || "0").toLocaleString('id-ID')}
                       </td>
+                      <td className="p-4 text-center">
+                        <button onClick={() => handleDeleteTransaction(item.id)} className="p-2 bg-surface border border-outline-variant rounded-lg text-on-surface-variant hover:text-error hover:border-error transition-colors tooltip-trigger" title="Hapus Transaksi">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
                 {filteredHistory.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-on-surface-variant">
+                    <td colSpan={7} className="p-8 text-center text-on-surface-variant">
                       Tidak ada data mutasi yang sesuai pencarian.
                     </td>
                   </tr>
