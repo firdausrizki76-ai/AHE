@@ -200,7 +200,7 @@ export default function TabunganPage() {
         
       if (savErr) throw savErr;
       
-      const currentBalance = parseFloat(savData.balance || "0");
+      const currentBalance = Number(savData.balance || 0);
       let newBalance = currentBalance;
       
       // Revert the transaction
