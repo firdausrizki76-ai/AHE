@@ -40,6 +40,7 @@ export default function GuruAbsenPage() {
   const [historyStudentAtt, setHistoryStudentAtt] = useState<any[]>([]);
   const [historyTeacherAtt, setHistoryTeacherAtt] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [filterStatusSiswa, setFilterStatusSiswa] = useState<'active' | 'inactive' | 'all'>('active');
 
   // Data lists
   const [students, setStudents] = useState<any[]>([]);
@@ -94,11 +95,10 @@ export default function GuruAbsenPage() {
       // Fallback removed — teacher must be properly linked via user_id
       setTeacherProfile(teacher);
 
-      // 2. Fetch all active students
+      // 2. Fetch all students
       const { data: studentsData, error: studentErr } = await supabase
         .from("students")
         .select("*, student_les(*), class_members(classes(name))")
-        .eq("status", "active")
         .order("full_name", { ascending: true });
       if (studentErr) throw studentErr;
       setStudents(studentsData || []);
@@ -238,6 +238,7 @@ export default function GuruAbsenPage() {
           status: att ? att.status : 'belum',
           attendanceId: att ? att.id : null,
           originalStatus: att ? att.status : 'belum',
+          studentStatus: s.status || 'active',
         };
       })
     );
@@ -1094,29 +1095,47 @@ export default function GuruAbsenPage() {
         </div>
       </div>
 
-      {/* Tabs & Date Picker */}
+      {/* Tabs & Filters */}
       <div className="flex flex-col sm:flex-row justify-between gap-4 items-start sm:items-center bg-surface p-2 rounded-2xl border border-outline-variant shadow-sm w-full">
-        <div className="flex bg-surface-container-lowest p-1 rounded-xl w-full sm:w-auto">
-          <button 
-            onClick={() => setActiveTab('murid')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-label-md font-bold transition-all ${activeTab === 'murid' ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'}`}
-          >
-            <Users className="w-5 h-5" /> Absensi Murid
-          </button>
-          <button 
-            onClick={() => setActiveTab('saya')}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-label-md font-bold transition-all ${activeTab === 'saya' ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'}`}
-          >
-            <User className="w-5 h-5" /> Absensi Mandiri (Saya)
-          </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex bg-surface-container-lowest p-1 rounded-xl w-full sm:w-auto">
+            <button 
+              onClick={() => setActiveTab('murid')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-label-md font-bold transition-all ${activeTab === 'murid' ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'}`}
+            >
+              <Users className="w-5 h-5" /> Absensi Murid
+            </button>
+            <button 
+              onClick={() => setActiveTab('saya')}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-label-md font-bold transition-all ${activeTab === 'saya' ? 'bg-primary text-on-primary shadow-md' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'}`}
+            >
+              <User className="w-5 h-5" /> Absensi Mandiri (Saya)
+            </button>
+          </div>
+          
+          {activeTab === 'murid' && (
+            <div className="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant">
+              <Filter className="w-4 h-4 text-on-surface-variant" />
+              <select
+                value={filterStatusSiswa}
+                onChange={(e: any) => setFilterStatusSiswa(e.target.value)}
+                className="bg-transparent text-sm font-bold text-on-surface focus:outline-none"
+              >
+                <option value="active">Murid Aktif</option>
+                <option value="inactive">Murid Nonaktif</option>
+                <option value="all">Semua Murid</option>
+              </select>
+            </div>
+          )}
         </div>
         
-        <div className="relative w-full sm:w-auto pr-2">
+        <div className="relative w-full sm:w-auto pr-2 flex items-center gap-2 bg-surface-container-lowest px-3 rounded-xl border border-outline-variant">
+          <span className="text-sm font-bold text-on-surface-variant whitespace-nowrap">Tanggal Absensi:</span>
           <input 
             type="date" 
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface text-on-surface font-bold"
+            className="w-full sm:w-auto py-2.5 bg-transparent focus:outline-none transition-all font-body-md text-on-surface font-bold"
           />
         </div>
       </div>
@@ -1147,8 +1166,8 @@ export default function GuruAbsenPage() {
                 </tr>
               </thead>
               <tbody>
-                {muridData.length > 0 ? (
-                  muridData.map((item) => (
+                {muridData.filter(m => filterStatusSiswa === 'all' || m.studentStatus === filterStatusSiswa).length > 0 ? (
+                  muridData.filter(m => filterStatusSiswa === 'all' || m.studentStatus === filterStatusSiswa).map((item) => (
                     <tr key={item.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
                       <td className="p-4">
                         <div className="font-bold text-on-surface">{item.name}</div>
@@ -1187,7 +1206,7 @@ export default function GuruAbsenPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-on-surface-variant">Belum ada murid aktif terdaftar.</td>
+                    <td colSpan={4} className="p-8 text-center text-on-surface-variant">Belum ada murid terdaftar untuk filter ini.</td>
                   </tr>
                 )}
               </tbody>
