@@ -5,6 +5,7 @@ import { useAuthStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase/client";
 import { Wallet, ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeIndo } from "@/lib/dateUtils";
 
 export default function MuridTabunganPage() {
   const { user } = useAuthStore();
@@ -111,7 +112,7 @@ export default function MuridTabunganPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-lowest border-b border-surface-container">
-                <th className="p-4 font-label-md text-on-surface-variant">Tanggal</th>
+                <th className="p-4 font-label-md text-on-surface-variant">Waktu & Tanggal</th>
                 <th className="p-4 font-label-md text-on-surface-variant">Tipe</th>
                 <th className="p-4 font-label-md text-on-surface-variant">Deskripsi</th>
                 <th className="p-4 font-label-md text-on-surface-variant text-right">Jumlah</th>
@@ -123,7 +124,7 @@ export default function MuridTabunganPage() {
                 const isDeposit = tx.type === "deposit";
                 return (
                   <tr key={tx.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
-                    <td className="p-4 text-on-surface">{new Date(tx.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td className="p-4 text-on-surface font-medium whitespace-nowrap">{formatDateTimeIndo(tx.created_at)}</td>
                     <td className="p-4">
                       {isDeposit ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-tertiary-container/50 text-tertiary font-bold text-label-sm">

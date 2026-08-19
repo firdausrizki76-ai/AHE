@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Search, CheckCircle, XCircle, FileText, Plus, ArrowUpRight, X, AlertCircle, Loader2, History, Printer, Filter, Calendar, CreditCard, RefreshCw } from "lucide-react";
+import { Wallet, Search, CheckCircle, XCircle, FileText, Plus, ArrowUpRight, X, AlertCircle, Loader2, History, Printer, Filter, Calendar, CreditCard, RefreshCw, Edit2, Trash2, Tag, Layers, Check, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { getLocalDateString, formatDateIndo, formatDateTimeIndo } from "@/lib/dateUtils";
 
 export default function PembayaranPage() {
-  const [viewMode, setViewMode] = useState<'tagihan' | 'riwayat'>('tagihan');
+  const [viewMode, setViewMode] = useState<'tagihan' | 'riwayat' | 'jenis_tagihan'>('tagihan');
   const [bills, setBills] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<any[]>([]);
@@ -15,6 +16,18 @@ export default function PembayaranPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create'|'pay'>('create');
+
+  // Master Payment Types CRUD state
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [typeModalMode, setTypeModalMode] = useState<'create' | 'edit'>('create');
+  const [selectedType, setSelectedType] = useState<any | null>(null);
+  const [typeFormData, setTypeFormData] = useState({
+    name: "",
+    amount: "",
+    les_type: "all",
+    is_recurring: true
+  });
+  const [typeSaveLoading, setTypeSaveLoading] = useState(false);
 
   // Filter Tagihan state
   const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid' | 'overdue'>('all');
@@ -27,9 +40,9 @@ export default function PembayaranPage() {
   const [historyStartDate, setHistoryStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split('T')[0];
+    return getLocalDateString(d);
   });
-  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [historyEndDate, setHistoryEndDate] = useState(() => getLocalDateString());
   const [historyMethodFilter, setHistoryMethodFilter] = useState<'all' | 'tunai' | 'transfer' | 'tabungan'>('all');
   const [historySearch, setHistorySearch] = useState('');
   
@@ -40,14 +53,18 @@ export default function PembayaranPage() {
     student_id: "",
     payment_type_id: "",
     amount: "",
-    due_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    due_date: (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 10);
+      return getLocalDateString(d);
+    })(),
     notes: ""
   });
 
   // Form state for Pay Bill
   const [payForm, setPayForm] = useState({
     payment_method: "tunai", // 'tunai' | 'tabungan' | 'transfer'
-    paid_at: new Date().toISOString().split('T')[0],
+    paid_at: getLocalDateString(),
     notes: ""
   });
 
@@ -356,12 +373,14 @@ export default function PembayaranPage() {
     setModalMode('create');
     const firstStudent = students[0];
     const firstType = paymentTypes[0];
+    const defaultDue = new Date();
+    defaultDue.setDate(defaultDue.getDate() + 10);
     setCreateForm({
       student_id: firstStudent?.id || "",
       payment_type_id: firstType?.id || "",
       amount: firstType?.amount?.toString() || "0",
-      due_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      notes: ""
+      due_date: getLocalDateString(defaultDue),
+      notes: firstType ? `Pembayaran ${firstType.name}` : ""
     });
     setIsModalOpen(true);
   };
@@ -381,10 +400,95 @@ export default function PembayaranPage() {
     setModalMode('pay');
     setPayForm({
       payment_method: "tunai",
-      paid_at: new Date().toISOString().split('T')[0],
+      paid_at: getLocalDateString(),
       notes: ""
     });
     setIsModalOpen(true);
+  };
+
+  // Payment Types CRUD Handlers
+  const openCreateTypeModal = () => {
+    setTypeModalMode('create');
+    setSelectedType(null);
+    setTypeFormData({
+      name: "",
+      amount: "",
+      les_type: "all",
+      is_recurring: true
+    });
+    setIsTypeModalOpen(true);
+  };
+
+  const openEditTypeModal = (pt: any) => {
+    setTypeModalMode('edit');
+    setSelectedType(pt);
+    setTypeFormData({
+      name: pt.name || "",
+      amount: pt.amount ? parseFloat(pt.amount).toString() : "",
+      les_type: pt.les_type || "all",
+      is_recurring: pt.is_recurring ?? true
+    });
+    setIsTypeModalOpen(true);
+  };
+
+  const handleSaveType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!typeFormData.name.trim()) {
+      toast.error("Nama jenis tagihan wajib diisi");
+      return;
+    }
+    const amt = parseFloat(typeFormData.amount);
+    if (isNaN(amt) || amt < 0) {
+      toast.error("Nominal tagihan harus berupa angka valid");
+      return;
+    }
+
+    setTypeSaveLoading(true);
+    try {
+      const payload = {
+        name: typeFormData.name.trim(),
+        amount: amt,
+        les_type: typeFormData.les_type === "all" ? null : typeFormData.les_type,
+        is_recurring: typeFormData.is_recurring
+      };
+
+      if (typeModalMode === 'create') {
+        const { error } = await supabase
+          .from("payment_types")
+          .insert(payload);
+        if (error) throw error;
+        toast.success("Jenis pembayaran baru berhasil ditambahkan!");
+      } else {
+        const { error } = await supabase
+          .from("payment_types")
+          .update(payload)
+          .eq("id", selectedType.id);
+        if (error) throw error;
+        toast.success("Jenis pembayaran berhasil diperbarui!");
+      }
+
+      setIsTypeModalOpen(false);
+      fetchStudentsAndTypes();
+    } catch (err: any) {
+      toast.error("Gagal menyimpan jenis pembayaran: " + err.message);
+    } finally {
+      setTypeSaveLoading(false);
+    }
+  };
+
+  const handleDeleteType = async (pt: any) => {
+    if (!confirm(`Hapus jenis pembayaran "${pt.name}"? Tagihan yang sudah tercatat tetap tersimpan di riwayat.`)) return;
+    try {
+      const { error } = await supabase
+        .from("payment_types")
+        .delete()
+        .eq("id", pt.id);
+      if (error) throw error;
+      toast.success(`Jenis pembayaran "${pt.name}" berhasil dihapus.`);
+      fetchStudentsAndTypes();
+    } catch (err: any) {
+      toast.error("Gagal menghapus jenis pembayaran: " + err.message);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -543,6 +647,17 @@ export default function PembayaranPage() {
           >
             <History className="w-4 h-4" />
             History / Riwayat Transaksi
+          </button>
+          <button
+            onClick={() => setViewMode("jenis_tagihan")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+              viewMode === "jenis_tagihan"
+                ? "bg-primary text-on-primary shadow-md"
+                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+            }`}
+          >
+            <CreditCard className="w-4 h-4" />
+            Kelola Jenis Pembayaran & Tarif
           </button>
         </div>
       </div>
@@ -887,6 +1002,110 @@ export default function PembayaranPage() {
         </div>
       )}
 
+      {viewMode === "jenis_tagihan" && (
+        <div className="space-y-6">
+          <div className="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-primary" /> Master Jenis Pembayaran & Tarif
+              </h3>
+              <p className="text-body-md text-on-surface-variant mt-1">
+                Atur nama tagihan, nominal biaya standar (SPP, Modul, Kaos, dll), dan program les terkait.
+              </p>
+            </div>
+            <button
+              onClick={openCreateTypeModal}
+              className="inline-flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-primary-container transition-colors shadow-sm whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" /> Tambah Jenis Tagihan
+            </button>
+          </div>
+
+          <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
+            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex justify-between items-center">
+              <h4 className="text-base font-bold text-on-surface">Daftar Jenis Tagihan ({paymentTypes.length})</h4>
+              <span className="text-xs font-bold text-on-surface-variant">Klik "Edit Tarif" untuk mengubah nominal atau nama tagihan</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="bg-surface-container-lowest border-b border-surface-container">
+                    <th className="p-4 font-bold text-on-surface-variant">Nama Jenis Tagihan</th>
+                    <th className="p-4 font-bold text-on-surface-variant">Program Les Terkait</th>
+                    <th className="p-4 font-bold text-on-surface-variant">Sifat Tagihan</th>
+                    <th className="p-4 font-bold text-on-surface-variant text-right">Tarif Standar (Rp)</th>
+                    <th className="p-4 font-bold text-on-surface-variant text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentTypes.map((pt) => {
+                    let programBadge = "Semua / Umum";
+                    let programClass = "bg-surface-container text-on-surface";
+                    if (pt.les_type === "les_ahe") {
+                      programBadge = "Les AHE";
+                      programClass = "bg-primary/10 text-primary";
+                    } else if (pt.les_type === "les_ase") {
+                      programBadge = "Les ASE";
+                      programClass = "bg-secondary/15 text-secondary";
+                    } else if (pt.les_type === "les_mapel") {
+                      programBadge = "Les Mapel";
+                      programClass = "bg-[#712ae2]/10 text-[#712ae2]";
+                    }
+
+                    return (
+                      <tr key={pt.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
+                        <td className="p-4 font-bold text-on-surface text-base">
+                          {pt.name}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${programClass}`}>
+                            {programBadge}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${pt.is_recurring ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+                            {pt.is_recurring ? 'Rutin Bulanan (SPP)' : 'Sekali Bayar / Non-Rutin'}
+                          </span>
+                        </td>
+                        <td className="p-4 font-bold text-right text-on-surface text-base">
+                          Rp {parseFloat(pt.amount || "0").toLocaleString('id-ID')}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => openEditTypeModal(pt)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-outline-variant rounded-lg text-primary hover:bg-primary hover:text-on-primary transition-colors text-xs font-bold shadow-sm"
+                              title="Edit Nama & Tarif"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" /> Edit Tarif
+                            </button>
+                            <button
+                              onClick={() => handleDeleteType(pt)}
+                              className="p-1.5 bg-surface border border-outline-variant rounded-lg text-error hover:bg-error hover:text-white transition-colors"
+                              title="Hapus Jenis Tagihan"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {paymentTypes.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-on-surface-variant">
+                        Belum ada data jenis pembayaran. Klik "Tambah Jenis Tagihan" untuk membuat baru.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Pembayaran Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
@@ -1043,6 +1262,109 @@ export default function PembayaranPage() {
                 >
                   {saveLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                   <CheckCircle className="w-4 h-4" /> {modalMode === 'create' ? 'Buat Tagihan' : 'Konfirmasi Pembayaran'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Master Payment Type (Jenis Tagihan) Modal */}
+      {isTypeModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-lg min-w-[300px] sm:min-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
+              <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+                {typeModalMode === 'create' ? <><Plus className="w-5 h-5 text-primary"/> Tambah Jenis Tagihan Baru</> : <><Edit2 className="w-5 h-5 text-primary"/> Edit Jenis Tagihan & Tarif</>}
+              </h3>
+              <button onClick={() => setIsTypeModalOpen(false)} className="p-2 hover:bg-surface-container rounded-full transition-colors"><X className="w-5 h-5"/></button>
+            </div>
+
+            <form onSubmit={handleSaveType} className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4">
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Nama Jenis Tagihan / Pembayaran</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Contoh: SPP Les AHE, Uang Pendaftaran, Kaos Les"
+                    value={typeFormData.name}
+                    onChange={(e) => setTypeFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Tarif Standar / Nominal (Rp)</label>
+                  <input
+                    required
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="Contoh: 150000"
+                    value={typeFormData.amount}
+                    onChange={(e) => setTypeFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface font-bold text-xl"
+                  />
+                  <p className="text-[11px] text-on-surface-variant">Nominal ini akan otomatis terisi saat admin membuat tagihan baru untuk murid.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Program Les Terkait</label>
+                  <select
+                    value={typeFormData.les_type}
+                    onChange={(e) => setTypeFormData(prev => ({ ...prev, les_type: e.target.value }))}
+                    className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface"
+                  >
+                    <option value="all">Semua Program / Tagihan Umum</option>
+                    <option value="les_ahe">Les AHE (Membaca)</option>
+                    <option value="les_ase">Les ASE (Hitung)</option>
+                    <option value="les_mapel">Les Mapel (Mata Pelajaran)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  <label className="text-label-md font-bold text-on-surface block">Siklus Pembayaran</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-on-surface">
+                      <input
+                        type="radio"
+                        name="is_recurring"
+                        checked={typeFormData.is_recurring === true}
+                        onChange={() => setTypeFormData(prev => ({ ...prev, is_recurring: true }))}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <span>Rutin Bulanan (SPP)</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-on-surface">
+                      <input
+                        type="radio"
+                        name="is_recurring"
+                        checked={typeFormData.is_recurring === false}
+                        onChange={() => setTypeFormData(prev => ({ ...prev, is_recurring: false }))}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <span>Sekali Bayar / Non-Rutin</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-surface-container bg-surface-container-lowest flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsTypeModalOpen(false)}
+                  className="px-6 py-2.5 rounded-xl border border-outline text-on-surface hover:bg-surface-container font-headline-sm transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={typeSaveLoading}
+                  className="px-6 py-2.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container shadow-sm font-headline-sm transition-colors flex items-center gap-2"
+                >
+                  {typeSaveLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <Check className="w-4 h-4" /> {typeModalMode === 'create' ? 'Simpan Jenis Tagihan' : 'Perbarui Tarif'}
                 </button>
               </div>
             </form>

@@ -5,6 +5,7 @@ import { useAuthStore } from "@/lib/store";
 import { Users, User, CheckCircle, XCircle, Clock, Star, Loader2, Save, LogIn, LogOut, QrCode, Camera, BarChart3, History, Printer, Filter, Calendar, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { getLocalDateString, getLocalMonthString, formatDateIndo } from "@/lib/dateUtils";
 import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 import BarcodeScannerModal from "@/components/attendance/BarcodeScannerModal";
 
@@ -12,7 +13,7 @@ export default function GuruAbsenPage() {
   const { user } = useAuthStore();
   const [viewMode, setViewMode] = useState<'harian' | 'rekap' | 'riwayat'>('harian');
   const [activeTab, setActiveTab] = useState<'murid' | 'saya'>('murid');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getLocalDateString());
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [teacherProfile, setTeacherProfile] = useState<any | null>(null);
@@ -22,7 +23,7 @@ export default function GuruAbsenPage() {
   const [manualCodeInput, setManualCodeInput] = useState("");
 
   // State Rekap Absensi
-  const [rekapMonth, setRekapMonth] = useState(() => new Date().toISOString().substring(0, 7));
+  const [rekapMonth, setRekapMonth] = useState(() => getLocalMonthString());
   const [rekapStudentAtt, setRekapStudentAtt] = useState<any[]>([]);
   const [rekapTeacherAtt, setRekapTeacherAtt] = useState<any[]>([]);
   const [rekapSearch, setRekapSearch] = useState("");
@@ -32,9 +33,9 @@ export default function GuruAbsenPage() {
   const [historyStartDate, setHistoryStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   });
-  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [historyEndDate, setHistoryEndDate] = useState(() => getLocalDateString());
   const [historyStatusFilter, setHistoryStatusFilter] = useState<"all" | "hadir" | "izin" | "alpha">("all");
   const [historySearch, setHistorySearch] = useState("");
   const [historyStudentAtt, setHistoryStudentAtt] = useState<any[]>([]);
@@ -970,7 +971,7 @@ export default function GuruAbsenPage() {
                         const programOrRole = activeTab === "murid"
                           ? (item.les_type === "les_ahe" ? "AHE" : item.les_type === "les_ase" ? "ASE" : "Mapel")
                           : (item.teachers?.position || "Guru");
-                        const dateFormatted = new Date(item.date).toLocaleDateString("id-ID", {
+                        const dateFormatted = formatDateIndo(item.date, {
                           weekday: "short",
                           year: "numeric",
                           month: "short",

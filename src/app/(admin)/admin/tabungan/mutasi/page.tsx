@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { Search, Loader2, ArrowLeft, ArrowUpRight, ArrowDownRight, Filter, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { formatDateTimeIndo } from "@/lib/dateUtils";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -28,8 +29,9 @@ function MutasiContent() {
         .order("created_at", { ascending: false });
 
       if (dateFilter) {
-        query = query.gte("created_at", `${dateFilter}T00:00:00.000Z`)
-                     .lte("created_at", `${dateFilter}T23:59:59.999Z`);
+        const startIso = new Date(`${dateFilter}T00:00:00`).toISOString();
+        const endIso = new Date(`${dateFilter}T23:59:59.999`).toISOString();
+        query = query.gte("created_at", startIso).lte("created_at", endIso);
       }
 
       const { data: histData, error: histErr } = await query;
@@ -159,7 +161,7 @@ function MutasiContent() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-lowest border-b border-surface-container">
-                  <th className="p-4 font-label-md text-on-surface-variant">Tanggal</th>
+                  <th className="p-4 font-label-md text-on-surface-variant">Waktu & Tanggal</th>
                   <th className="p-4 font-label-md text-on-surface-variant">Nama Murid</th>
                   <th className="p-4 font-label-md text-on-surface-variant">Jenis</th>
                   <th className="p-4 font-label-md text-on-surface-variant">Keterangan</th>
@@ -173,8 +175,8 @@ function MutasiContent() {
                   const isDeposit = item.type === 'deposit';
                   return (
                     <tr key={item.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
-                      <td className="p-4 text-on-surface">
-                        {new Date(item.created_at).toLocaleString('id-ID')}
+                      <td className="p-4 text-on-surface font-medium whitespace-nowrap">
+                        {formatDateTimeIndo(item.created_at)}
                       </td>
                       <td className="p-4 font-bold text-on-surface">
                         {item.students?.full_name}

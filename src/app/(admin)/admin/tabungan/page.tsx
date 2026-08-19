@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2, History, Trash2 } from "lucide-react";
+import { Wallet, Search, Plus, ArrowUpRight, ArrowDownRight, X, Loader2, History, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { getLocalDateTimeString, formatDateTimeIndo } from "@/lib/dateUtils";
 import Link from "next/link";
 
 export default function TabunganPage() {
@@ -19,7 +20,7 @@ export default function TabunganPage() {
   // Form state
   const [formData, setFormData] = useState({
     student_id: "",
-    created_at: new Date().toISOString().split('T')[0],
+    created_at: getLocalDateTimeString(),
     amount: "",
     description: ""
   });
@@ -94,7 +95,7 @@ export default function TabunganPage() {
     const selectedStudent = studentId ? students.find(s => s.id === studentId) : students[0];
     setFormData({
       student_id: selectedStudent?.id || "",
-      created_at: new Date().toISOString().split('T')[0],
+      created_at: getLocalDateTimeString(),
       amount: "",
       description: type === 'deposit' ? 'Setoran Tabungan' : 'Penarikan Tabungan'
     });
@@ -360,7 +361,10 @@ export default function TabunganPage() {
                       <p className="text-body-sm text-on-surface-variant" title={item.description || ""}>
                         {item.description || (isDeposit ? 'Setoran' : 'Penarikan')}
                       </p>
-                      <p className="text-[10px] text-on-surface-variant">{new Date(item.created_at).toLocaleDateString('id-ID')}</p>
+                      <p className="text-[11px] text-on-surface-variant flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3 h-3 text-primary shrink-0" />
+                        {formatDateTimeIndo(item.created_at)}
+                      </p>
                     </div>
                     <div className="text-right flex items-center gap-2">
                       <p className={`font-bold ${isDeposit ? 'text-[#25D366]' : 'text-error'}`}>
@@ -428,14 +432,15 @@ export default function TabunganPage() {
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-label-md font-bold text-on-surface">Tanggal Transaksi</label>
+                  <label className="text-label-md font-bold text-on-surface">Tanggal & Waktu Transaksi</label>
                   <input 
                     required 
-                    type="date" 
+                    type="datetime-local" 
                     value={formData.created_at}
                     onChange={(e) => setFormData(prev => ({ ...prev, created_at: e.target.value }))}
                     className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface" 
                   />
+                  <p className="text-[11px] text-on-surface-variant">Otomatis mencatat tanggal & jam realtime saat ini (dapat disesuaikan jika perlu).</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-label-md font-bold text-on-surface">Nominal Transaksi (Rp)</label>

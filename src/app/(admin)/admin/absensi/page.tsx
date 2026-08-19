@@ -4,13 +4,14 @@ import { useState, useEffect, useCallback } from "react";
 import { Calendar, Users, GraduationCap, CheckCircle, XCircle, Clock, Star, Loader2, Search, QrCode, Camera, BarChart3, History, Printer, Filter, FileSpreadsheet, ArrowLeftRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { getLocalDateString, getLocalMonthString, formatDateIndo } from "@/lib/dateUtils";
 import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 import BarcodeScannerModal from "@/components/attendance/BarcodeScannerModal";
 
 export default function AbsensiPage() {
   const [viewMode, setViewMode] = useState<'harian' | 'rekap' | 'riwayat'>('harian');
   const [activeTab, setActiveTab] = useState<'murid' | 'guru'>('murid');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => getLocalDateString());
   const [students, setStudents] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [studentAttendance, setStudentAttendance] = useState<any[]>([]);
@@ -20,7 +21,7 @@ export default function AbsensiPage() {
   const [filterStatusSiswa, setFilterStatusSiswa] = useState<'active' | 'inactive' | 'all'>('active');
 
   // State Rekap Absensi
-  const [rekapMonth, setRekapMonth] = useState(() => new Date().toISOString().substring(0, 7));
+  const [rekapMonth, setRekapMonth] = useState(() => getLocalMonthString());
   const [rekapStudentAtt, setRekapStudentAtt] = useState<any[]>([]);
   const [rekapTeacherAtt, setRekapTeacherAtt] = useState<any[]>([]);
   const [rekapSearch, setRekapSearch] = useState("");
@@ -30,9 +31,9 @@ export default function AbsensiPage() {
   const [historyStartDate, setHistoryStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   });
-  const [historyEndDate, setHistoryEndDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [historyEndDate, setHistoryEndDate] = useState(() => getLocalDateString());
   const [historyStatusFilter, setHistoryStatusFilter] = useState<"all" | "hadir" | "izin" | "alpha">("all");
   const [historySearch, setHistorySearch] = useState("");
   const [historyStudentAtt, setHistoryStudentAtt] = useState<any[]>([]);
@@ -964,7 +965,7 @@ export default function AbsensiPage() {
                         const programOrRole = activeTab === "murid"
                           ? (item.les_type === "les_ahe" ? "AHE" : item.les_type === "les_ase" ? "ASE" : "Mapel")
                           : (item.teachers?.position || "Guru");
-                        const dateFormatted = new Date(item.date).toLocaleDateString("id-ID", {
+                        const dateFormatted = formatDateIndo(item.date, {
                           weekday: "short",
                           year: "numeric",
                           month: "short",

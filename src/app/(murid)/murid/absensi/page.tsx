@@ -5,6 +5,7 @@ import { useAuthStore } from "@/lib/store";
 import { supabase } from "@/lib/supabase/client";
 import { CalendarCheck, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateIndo } from "@/lib/dateUtils";
 
 export default function MuridAbsensiPage() {
   const { user } = useAuthStore();
@@ -139,7 +140,7 @@ export default function MuridAbsensiPage() {
                 return (
                   <tr key={att.id} className="border-b border-surface-container hover:bg-surface-container-lowest/50 transition-colors">
                     <td className="p-4 text-on-surface font-semibold">
-                      {new Date(att.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                      {formatDateIndo(att.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </td>
                     <td className="p-4">
                       <span className="inline-block px-3 py-1 bg-surface-container text-on-surface rounded-full text-label-sm font-bold">
