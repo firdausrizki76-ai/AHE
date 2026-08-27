@@ -317,7 +317,7 @@ export default function EvaluasiPage() {
   };
 
   const handleSendWA = async (type: 'evaluasi'|'naik_level', item: any) => {
-    const parentPhone = item.students?.registrations?.whatsapp;
+    const parentPhone = item.students?.whatsapp || item.students?.registrations?.whatsapp;
     if (!parentPhone) {
       toast.error("Nomor WhatsApp orang tua murid tidak ditemukan");
       return;

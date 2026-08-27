@@ -103,7 +103,7 @@ export default function MuridProfilPage() {
               <Phone className="w-5 h-5 text-primary shrink-0" />
               <div>
                 <span className="text-xs text-outline block">Nomor WhatsApp Wali</span>
-                <span className="font-bold text-on-surface text-sm">{student.registrations?.whatsapp || "-"}</span>
+                <span className="font-bold text-on-surface text-sm">{student.whatsapp || student.registrations?.whatsapp || "-"}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 text-on-surface-variant">

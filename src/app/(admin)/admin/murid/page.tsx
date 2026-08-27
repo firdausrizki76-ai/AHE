@@ -38,6 +38,7 @@ export default function MuridPage() {
     kk_number: "",
     father_name: "",
     mother_name: "",
+    whatsapp: "",
     address: "",
     rt: "",
     rw: "",
@@ -192,9 +193,12 @@ export default function MuridPage() {
   const filteredStudents = useMemo(() => {
     let result = students.filter(s => {
       // Search filter
+      const phoneNum = s.whatsapp || s.registrations?.whatsapp || "";
       const matchSearch = !searchQuery || 
         s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        s.nis.toLowerCase().includes(searchQuery.toLowerCase());
+        s.nis.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        phoneNum.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.nickname && s.nickname.toLowerCase().includes(searchQuery.toLowerCase()));
       
       // Status filter
       const matchStatus = !filterStatus || s.status === filterStatus;
@@ -288,6 +292,7 @@ export default function MuridPage() {
         kk_number: student.kk_number || "",
         father_name: student.father_name || "",
         mother_name: student.mother_name || "",
+        whatsapp: student.whatsapp || student.registrations?.whatsapp || "",
         address: student.address || "",
         rt: student.rt || "",
         rw: student.rw || "",
@@ -318,6 +323,7 @@ export default function MuridPage() {
         kk_number: "",
         father_name: "",
         mother_name: "",
+        whatsapp: "",
         address: "",
         rt: "",
         rw: "",
@@ -385,6 +391,7 @@ export default function MuridPage() {
             kk_number: formData.kk_number || null,
             father_name: formData.father_name || null,
             mother_name: formData.mother_name || null,
+            whatsapp: formData.whatsapp ? formData.whatsapp.trim() : null,
             address: formData.address || null,
             rt: formData.rt || null,
             rw: formData.rw || null,
@@ -452,6 +459,7 @@ export default function MuridPage() {
             kk_number: formData.kk_number || null,
             father_name: formData.father_name || null,
             mother_name: formData.mother_name || null,
+            whatsapp: formData.whatsapp ? formData.whatsapp.trim() : null,
             address: formData.address || null,
             rt: formData.rt || null,
             rw: formData.rw || null,
@@ -715,7 +723,14 @@ export default function MuridPage() {
                         )}
                         <div>
                           <div className="font-bold text-on-surface">{student.full_name}</div>
-                          <div className="text-body-sm text-on-surface-variant">{student.school_origin || "-"} (Kl. {student.school_class || "-"})</div>
+                          <div className="text-body-sm text-on-surface-variant flex items-center gap-2 flex-wrap">
+                            <span>{student.school_origin || "-"} (Kl. {student.school_class || "-"})</span>
+                            {(student.whatsapp || student.registrations?.whatsapp) && (
+                              <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+                                WA: {student.whatsapp || student.registrations?.whatsapp}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -853,6 +868,21 @@ export default function MuridPage() {
                     <div className="space-y-2">
                       <label className="text-label-md font-bold text-on-surface">Nama Ibu</label>
                       <input required name="mother_name" value={formData.mother_name} onChange={handleInputChange} type="text" className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface" placeholder="Nama Lengkap Ibu" />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-label-md font-bold text-on-surface flex items-center justify-between">
+                        <span>Nomor WhatsApp (Orang Tua / Wali)</span>
+                        <span className="text-[11px] text-primary font-normal">Contoh: 08123456789</span>
+                      </label>
+                      <input 
+                        name="whatsapp" 
+                        value={formData.whatsapp} 
+                        onChange={handleInputChange} 
+                        type="text" 
+                        className="w-full p-3 rounded-xl border border-outline focus:border-primary focus:ring-1 focus:ring-primary outline-none bg-surface font-mono" 
+                        placeholder="08xxxxxxxxxx atau 628xxxxxxxxxx" 
+                      />
+                      <p className="text-xs text-on-surface-variant">Digunakan untuk konfirmasi pendaftaran, pengiriman bukti kwitansi SPP, dan tagihan belajar.</p>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-label-md font-bold text-on-surface">Alamat Lengkap</label>
@@ -1064,6 +1094,22 @@ export default function MuridPage() {
                   <span className="font-bold text-on-surface">
                     {[previewStudent.father_name, previewStudent.mother_name].filter(Boolean).join(" / ") || "-"}
                   </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant text-xs font-bold uppercase tracking-wider block">Nomor WhatsApp Wali</span>
+                  {previewStudent.whatsapp || previewStudent.registrations?.whatsapp ? (
+                    <a 
+                      href={`https://wa.me/${(previewStudent.whatsapp || previewStudent.registrations?.whatsapp).replace(/\D/g, '').replace(/^0/, '62')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="font-bold text-emerald-600 hover:underline inline-flex items-center gap-1.5"
+                    >
+                      <span>{previewStudent.whatsapp || previewStudent.registrations?.whatsapp}</span>
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded text-xs">Kirim Pesan</span>
+                    </a>
+                  ) : (
+                    <span className="font-bold text-on-surface">-</span>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <span className="text-on-surface-variant text-xs font-bold uppercase tracking-wider block">Alamat Rumah</span>

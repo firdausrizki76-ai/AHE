@@ -1028,6 +1028,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           village: string | null
+          whatsapp: string | null
         }
         Insert: {
           address?: string | null
@@ -1058,6 +1059,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           village?: string | null
+          whatsapp?: string | null
         }
         Update: {
           address?: string | null
@@ -1088,6 +1090,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           village?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -1248,6 +1251,30 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           type?: string
+        }
+        Relationships: []
+      }
+      wa_templates: {
+        Row: {
+          content: string
+          id: string
+          name: string
+          template_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          id: string
+          name: string
+          template_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          id?: string
+          name?: string
+          template_type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

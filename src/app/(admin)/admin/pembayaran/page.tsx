@@ -11,8 +11,117 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { getLocalDateString, getLocalMonthString, formatDateIndo, formatDateTimeIndo } from "@/lib/dateUtils";
 
+// Default Official WhatsApp Message Templates for AHE Tepus Wetan
+const DEFAULT_RECEIPT_TEMPLATE = `BUKTI PEMBAYARAN AHE TEPUS WETAN
+━━━━━━━━━━━━━━━━━━━━
+
+Assalamualaikum warahmatullahi wabarakatuh.
+
+Yth. Bapak/Ibu
+Orang Tua/Wali dari
+{nama_murid}
+(NIS: {nis})
+
+Alhamdulillah, pembayaran tagihan belajar Ananda telah kami terima dengan status LUNAS:
+
+🧾 Rincian Pembayaran:
+* No. Kwitansi: {no_kwitansi}
+* Jenis Pembayaran: {jenis_pembayaran}
+* Periode: {periode}
+* Nominal: Rp {nominal},-
+* Tanggal Bayar: {tanggal_bayar}
+* Metode Bayar: {metode_bayar}
+* Status: 🟢 LUNAS
+━━━━━━━━━━━━━━━━━━━━
+Terima kasih banyak atas pembayarannya. Semoga Ananda {nama_murid} semakin semangat belajarnya dan semakin berprestasi. 🌟📚
+
+Salam hangat,
+Admin AHE Tepus Wetan`;
+
+const DEFAULT_REMINDER_TEMPLATE = `PEMBERITAHUAN TAGIHAN AHE TEPUS WETAN
+━━━━━━━━━━━━━━━━━━━━
+
+Assalamualaikum warahmatullahi wabarakatuh.
+
+Yth. Bapak/Ibu
+Orang Tua/Wali dari
+{nama_murid}
+(NIS: {nis})
+
+Dengan Hormat,
+Kami beritahukan bahwa Ananda {nama_murid} memiliki tagihan di *AHE TEPUS WETAN, dengan rincian sebagai berikut:
+
+📋 Rincian Tagihan:
+* Jenis Tagihan: {jenis_tagihan}
+* Periode: {periode}
+* Nominal: Rp {nominal},-
+* Jatuh Tempo: {jatuh_tempo}
+* Status: 🔴 BELUM DIBAYAR
+━━━━━━━━━━━━━━━━━━━━
+💳 Metode Pembayaran:
+1. Tunai: Di tempat Les AHE Tepus Wetan.
+2. Potong Tabungan: Otomatis potong dari saldo tabungan.
+3. Transfer Bank: 
+   • Bank BRI a/n Rofiq : 677601020794531
+
+Mohon segera lakukan pembayaran sebelum jatuh tempo.
+Mohon konfirmasi jika telah melakukan pembayaran.
+Apabila ada kekeliruan mohon segera konfirmasi.
+Terima kasih atas perhatian dan kepercayaannya. 🙏✨
+
+Salam hangat,
+Admin AHE Tepus Wetan`;
+
+// Template Variable Formatter Helper
+const formatTemplateMessage = (
+  template: string,
+  data: {
+    studentName: string;
+    nis: string;
+    receiptNumber: string;
+    paymentTypeName: string;
+    periodMonth: string;
+    amount: string;
+    paidDate: string;
+    paymentMethod: string;
+    dueDate: string;
+    status: string;
+  }
+) => {
+  let result = template;
+  result = result.replace(/\{nama_murid\}|\{nama\}|\{student_name\}/gi, data.studentName || "-");
+  result = result.replace(/\{nis\}/gi, data.nis || "-");
+  result = result.replace(/\{no_kwitansi\}|\{receipt_number\}/gi, data.receiptNumber || "-");
+  result = result.replace(/\{jenis_pembayaran\}|\{jenis_tagihan\}|\{tagihan\}/gi, data.paymentTypeName || "SPP Les AHE");
+  result = result.replace(/\{periode\}|\{bulan\}/gi, data.periodMonth || "-");
+  result = result.replace(/Rp\s*\{nominal\}|Rp\s*\{amount\}/gi, `Rp ${data.amount}`);
+  result = result.replace(/\{nominal\}|\{amount\}/gi, data.amount || "0");
+  result = result.replace(/\{tanggal_bayar\}|\{paid_at\}|\{tgl_bayar\}/gi, data.paidDate || "-");
+  result = result.replace(/\{metode_bayar\}|\{payment_method\}/gi, data.paymentMethod || "Tunai");
+  result = result.replace(/\{jatuh_tempo\}|\{due_date\}/gi, data.dueDate || "-");
+  result = result.replace(/\{status\}/gi, data.status || "LUNAS");
+  return result;
+};
+
 export default function PembayaranPage() {
-  const [viewMode, setViewMode] = useState<'tagihan' | 'riwayat' | 'jenis_tagihan'>('tagihan');
+  const [viewMode, setViewMode] = useState<'tagihan' | 'riwayat' | 'jenis_tagihan' | 'template_wa'>('tagihan');
+  const [activeTemplateTab, setActiveTemplateTab] = useState<'receipt' | 'reminder'>('receipt');
+  const [waTemplates, setWaTemplates] = useState<{
+    receipt: { id: string; name: string; content: string };
+    reminder: { id: string; name: string; content: string };
+  }>({
+    receipt: {
+      id: "receipt",
+      name: "Bukti Pembayaran (Kwitansi Lunas)",
+      content: DEFAULT_RECEIPT_TEMPLATE
+    },
+    reminder: {
+      id: "reminder",
+      name: "Pemberitahuan Tagihan Belajar",
+      content: DEFAULT_REMINDER_TEMPLATE
+    }
+  });
+  const [templateSaveLoading, setTemplateSaveLoading] = useState(false);
   const [bills, setBills] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [paymentTypes, setPaymentTypes] = useState<any[]>([]);
@@ -139,6 +248,23 @@ export default function PembayaranPage() {
     }
   }, []);
 
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from("wa_templates").select("*");
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const rcpt = data.find((t: any) => t.id === "receipt" || t.template_type === "receipt");
+        const rem = data.find((t: any) => t.id === "reminder" || t.template_type === "reminder");
+        setWaTemplates(prev => ({
+          receipt: rcpt ? { id: rcpt.id, name: rcpt.name, content: rcpt.content } : prev.receipt,
+          reminder: rem ? { id: rem.id, name: rem.name, content: rem.content } : prev.reminder
+        }));
+      }
+    } catch (err: any) {
+      console.warn("Gagal memuat template WhatsApp dari server, menggunakan default:", err);
+    }
+  }, []);
+
   const fetchStudentsAndTypes = async () => {
     try {
       const { data: std, error: stdErr } = await supabase
@@ -163,7 +289,8 @@ export default function PembayaranPage() {
   useEffect(() => {
     fetchBills();
     fetchStudentsAndTypes();
-  }, [fetchBills]);
+    fetchTemplates();
+  }, [fetchBills, fetchTemplates]);
 
   const fetchHistoryTransactions = useCallback(async () => {
     setHistoryLoading(true);
@@ -175,6 +302,7 @@ export default function PembayaranPage() {
           students (
             full_name, 
             nis,
+            whatsapp,
             registrations (whatsapp)
           ),
           payment_bills (
@@ -427,12 +555,12 @@ export default function PembayaranPage() {
 
   const pendingCount = bills.filter(b => b.status === 'unpaid').length;
 
-  // Format Helper for WhatsApp Messages
+  // Format Helper for WhatsApp Messages (Dynamic from waTemplates)
   const generateWhatsAppMessage = (bill: any, type: 'reminder' | 'receipt') => {
     const student = bill.students;
     const studentName = student?.full_name || "Siswa";
-    const nis = student?.nis ? `(NIS: ${student.nis})` : "";
-    const paymentTypeName = bill.payment_types?.name || "Tagihan Les";
+    const nis = student?.nis || "-";
+    const paymentTypeName = bill.payment_types?.name || "SPP Les AHE";
     const amount = Number(bill.amount || 0).toLocaleString('id-ID');
     
     let monthStr = "-";
@@ -448,62 +576,47 @@ export default function PembayaranPage() {
     }
 
     if (type === 'reminder') {
+      const templateStr = waTemplates.reminder?.content || DEFAULT_REMINDER_TEMPLATE;
       const dueDateStr = bill.due_date ? formatDateIndo(bill.due_date) : "-";
-      return `*PEMBERITAHUAN TAGIHAN BELAJAR AHE*
-━━━━━━━━━━━━━━━━━━━━
-Yth. Bapak/Ibu Wali dari *${studentName}* ${nis}
-
-Kami dari *AHE TEPUS WETAN* ingin menginformasikan rincian tagihan bimbingan belajar Ananda:
-
-📋 *Rincian Tagihan:*
-• *Jenis Tagihan*: ${paymentTypeName}
-• *Periode*: ${monthStr}
-• *Nominal*: Rp ${amount},-
-• *Jatuh Tempo*: ${dueDateStr}
-• *Status*: 🔴 *BELUM DIBAYAR*
-━━━━━━━━━━━━━━━━━━━━
-💳 *Metode Pembayaran:*
-1. *Tunai*: Di tempat les / kantor AHE Tepus Wetan
-2. *Potong Tabungan*: Otomatis potong dari saldo tabungan ananda
-3. *Transfer Bank*:
-   • Bank BRI: (Konfirmasi nomor rekening ke admin)
-
-Mohon konfirmasi jika telah melakukan pembayaran. Terima kasih atas perhatian dan kepercayaannya. 🙏✨
-
-Salam hangat,
-*Admin AHE Tepus Wetan*`;
+      return formatTemplateMessage(templateStr, {
+        studentName,
+        nis,
+        receiptNumber: "-",
+        paymentTypeName,
+        periodMonth: monthStr,
+        amount,
+        paidDate: "-",
+        paymentMethod: "-",
+        dueDate: dueDateStr,
+        status: "🔴 BELUM DIBAYAR"
+      });
     } else {
       // Receipt / Kwitansi Lunas
+      const templateStr = waTemplates.receipt?.content || DEFAULT_RECEIPT_TEMPLATE;
       const tx = bill.payment_transactions?.[0];
-      const receiptNum = tx?.receipt_number || `KWT-${bill.id.substring(0, 8).toUpperCase()}`;
+      const receiptNum = tx?.receipt_number || `RCP-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${bill.id.substring(0, 4).toUpperCase()}`;
       const paidDate = tx?.paid_at ? formatDateIndo(tx.paid_at) : formatDateIndo(new Date());
       const methodStr = tx?.payment_method === 'tabungan' ? 'Potong Tabungan' : tx?.payment_method === 'transfer' ? 'Transfer Bank' : 'Tunai / Cash';
       
-      return `*BUKTI PEMBAYARAN / KWITANSI RESMI*
-━━━━━━━━━━━━━━━━━━━━
-Yth. Bapak/Ibu Wali dari *${studentName}* ${nis}
-
-Alhamdulillah, pembayaran tagihan belajar Ananda telah kami terima dengan status *LUNAS*:
-
-🧾 *Rincian Pembayaran:*
-• *No. Kwitansi*: ${receiptNum}
-• *Jenis Pembayaran*: ${paymentTypeName}
-• *Periode*: ${monthStr}
-• *Nominal*: *Rp ${amount},-*
-• *Tanggal Bayar*: ${paidDate}
-• *Metode Bayar*: ${methodStr}
-• *Status*: 🟢 *LUNAS*
-━━━━━━━━━━━━━━━━━━━━
-Terima kasih banyak atas pembayarannya. Semoga Ananda *${studentName}* senantiasa bersemangat belajar, cerdas, dan semakin berprestasi di AHE! 🌟📚
-
-Salam hangat,
-*Admin AHE Tepus Wetan*`;
+      return formatTemplateMessage(templateStr, {
+        studentName,
+        nis,
+        receiptNumber: receiptNum,
+        paymentTypeName,
+        periodMonth: monthStr,
+        amount,
+        paidDate,
+        paymentMethod: methodStr,
+        dueDate: "-",
+        status: "🟢 LUNAS"
+      });
     }
   };
 
   // Direct WhatsApp Trigger
   const handleOpenDirectWA = (bill: any, type: 'reminder' | 'receipt') => {
-    const rawPhone = bill.students?.registrations?.whatsapp || "";
+    // Automatically retrieve phone number from student.whatsapp or fallback to registrations.whatsapp
+    const rawPhone = bill.students?.whatsapp || bill.students?.registrations?.whatsapp || "";
     let cleanPhone = rawPhone.replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '62' + cleanPhone.substring(1);
@@ -523,7 +636,7 @@ Salam hangat,
 
   const handleOpenDirectWAFromTx = (tx: any) => {
     const student = tx.students;
-    const rawPhone = student?.registrations?.whatsapp || "";
+    const rawPhone = student?.whatsapp || student?.registrations?.whatsapp || "";
     let cleanPhone = rawPhone.replace(/\D/g, '');
     if (cleanPhone.startsWith('0')) {
       cleanPhone = '62' + cleanPhone.substring(1);
@@ -532,10 +645,10 @@ Salam hangat,
     }
 
     const studentName = student?.full_name || "Siswa";
-    const nis = student?.nis ? `(NIS: ${student.nis})` : "";
-    const paymentTypeName = tx.payment_bills?.payment_types?.name || "SPP / Tagihan";
+    const nis = student?.nis || "-";
+    const paymentTypeName = tx.payment_bills?.payment_types?.name || "SPP Les AHE";
     const amount = Number(tx.amount || 0).toLocaleString('id-ID');
-    const receiptNum = tx.receipt_number || `KWT-${tx.id.substring(0, 8).toUpperCase()}`;
+    const receiptNum = tx.receipt_number || `RCP-${tx.id.substring(0, 8).toUpperCase()}`;
     const paidDate = formatDateIndo(tx.paid_at);
     const methodStr = tx.payment_method === 'tabungan' ? 'Potong Tabungan' : tx.payment_method === 'transfer' ? 'Transfer Bank' : 'Tunai / Cash';
     
@@ -551,25 +664,19 @@ Salam hangat,
       }
     }
 
-    const message = `*BUKTI PEMBAYARAN / KWITANSI RESMI*
-━━━━━━━━━━━━━━━━━━━━
-Yth. Bapak/Ibu Wali dari *${studentName}* ${nis}
-
-Alhamdulillah, pembayaran tagihan belajar Ananda telah kami terima dengan status *LUNAS*:
-
-🧾 *Rincian Pembayaran:*
-• *No. Kwitansi*: ${receiptNum}
-• *Jenis Pembayaran*: ${paymentTypeName}
-• *Periode*: ${monthStr}
-• *Nominal*: *Rp ${amount},-*
-• *Tanggal Bayar*: ${paidDate}
-• *Metode Bayar*: ${methodStr}
-• *Status*: 🟢 *LUNAS*
-━━━━━━━━━━━━━━━━━━━━
-Terima kasih banyak atas pembayarannya. Semoga Ananda *${studentName}* senantiasa bersemangat belajar, cerdas, dan semakin berprestasi di AHE! 🌟📚
-
-Salam hangat,
-*Admin AHE Tepus Wetan*`;
+    const templateStr = waTemplates.receipt?.content || DEFAULT_RECEIPT_TEMPLATE;
+    const message = formatTemplateMessage(templateStr, {
+      studentName,
+      nis,
+      receiptNumber: receiptNum,
+      paymentTypeName,
+      periodMonth: monthStr,
+      amount,
+      paidDate,
+      paymentMethod: methodStr,
+      dueDate: "-",
+      status: "🟢 LUNAS"
+    });
 
     setWaData({
       phone: cleanPhone,
@@ -599,6 +706,59 @@ Salam hangat,
   const handleCopyWAMessage = () => {
     navigator.clipboard.writeText(waData.message);
     toast.success("Teks pesan WhatsApp berhasil disalin!");
+  };
+
+  // Template Management Handlers
+  const handleSaveTemplate = async () => {
+    const active = waTemplates[activeTemplateTab];
+    if (!active.content.trim()) {
+      toast.error("Isi template tidak boleh kosong");
+      return;
+    }
+
+    setTemplateSaveLoading(true);
+    try {
+      const { error } = await supabase
+        .from("wa_templates")
+        .upsert({
+          id: activeTemplateTab,
+          name: active.name,
+          template_type: activeTemplateTab,
+          content: active.content,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      toast.success(`Template "${active.name}" berhasil disimpan ke sistem!`);
+    } catch (err: any) {
+      toast.error("Gagal menyimpan template: " + err.message);
+    } finally {
+      setTemplateSaveLoading(false);
+    }
+  };
+
+  const handleResetTemplate = (type: 'receipt' | 'reminder') => {
+    if (!confirm(`Kembalikan template ${type === 'receipt' ? 'Bukti Pembayaran' : 'Pemberitahuan Tagihan'} ke format standar AHE Tepus Wetan?`)) return;
+    const defaultContent = type === 'receipt' ? DEFAULT_RECEIPT_TEMPLATE : DEFAULT_REMINDER_TEMPLATE;
+    setWaTemplates(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        content: defaultContent
+      }
+    }));
+    toast.info("Template berhasil di-reset. Jangan lupa klik 'Simpan Perubahan' jika ingin menyimpannya di database.");
+  };
+
+  const insertVariableToTemplate = (variableKey: string) => {
+    setWaTemplates(prev => ({
+      ...prev,
+      [activeTemplateTab]: {
+        ...prev[activeTemplateTab],
+        content: prev[activeTemplateTab].content + ` {${variableKey}}`
+      }
+    }));
+    toast.success(`Variabel {${variableKey}} disisipkan`);
   };
 
   // Open Create Modal
@@ -1156,6 +1316,17 @@ Salam hangat,
             <CreditCard className="w-4 h-4" />
             Kelola Jenis Pembayaran & Tarif
           </button>
+          <button
+            onClick={() => setViewMode("template_wa")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
+              viewMode === "template_wa"
+                ? "bg-emerald-600 text-white shadow-md"
+                : "text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200"
+            }`}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Template WhatsApp
+          </button>
         </div>
       </div>
 
@@ -1307,8 +1478,15 @@ Salam hangat,
                           </td>
                           <td className="p-4">
                             <div className="font-bold text-on-surface text-base">{item.students?.full_name}</div>
-                            <div className="text-xs text-on-surface-variant">
-                              {item.students?.registrations?.whatsapp ? `WA: ${item.students.registrations.whatsapp}` : 'WA: -'}
+                            <div className="text-xs text-on-surface-variant flex items-center gap-2 flex-wrap">
+                              <span>NIS: {item.students?.nis || "-"}</span>
+                              {(item.students?.whatsapp || item.students?.registrations?.whatsapp) ? (
+                                <span className="font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+                                  WA: {item.students?.whatsapp || item.students?.registrations?.whatsapp}
+                                </span>
+                              ) : (
+                                <span className="text-outline text-[11px] italic">WA: Belum diisi</span>
+                              )}
                             </div>
                           </td>
                           <td className="p-4">
@@ -1512,7 +1690,14 @@ Salam hangat,
                             <td className="p-4 font-mono font-bold text-primary">{tx.receipt_number || "-"}</td>
                             <td className="p-4">
                               <div className="font-bold text-on-surface">{studentName}</div>
-                              <div className="text-xs text-on-surface-variant">NIS: {nis}</div>
+                              <div className="text-xs text-on-surface-variant flex items-center gap-2 flex-wrap">
+                                <span>NIS: {nis}</span>
+                                {(tx.students?.whatsapp || tx.students?.registrations?.whatsapp) && (
+                                  <span className="font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+                                    WA: {tx.students?.whatsapp || tx.students?.registrations?.whatsapp}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="p-4 font-medium text-on-surface">{paymentFor}</td>
                             <td className="p-4">
@@ -1659,6 +1844,191 @@ Salam hangat,
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "template_wa" && (
+        <div className="space-y-6">
+          <div className="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
+                <MessageCircle className="w-6 h-6 text-emerald-600" /> Pengaturan Template WhatsApp
+              </h3>
+              <p className="text-body-md text-on-surface-variant mt-1">
+                Kustomisasi format teks pesan WhatsApp untuk Bukti Pembayaran Lunas dan Pemberitahuan Tagihan. Format disimpan ke sistem.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleResetTemplate(activeTemplateTab)}
+                className="inline-flex items-center gap-2 bg-surface text-on-surface-variant border border-outline-variant hover:bg-surface-container px-4 py-2.5 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" /> Reset ke Default
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                disabled={templateSaveLoading}
+                className="inline-flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 px-5 py-2.5 rounded-xl font-bold text-sm transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+              >
+                {templateSaveLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Simpan Perubahan Template
+              </button>
+            </div>
+          </div>
+
+          {/* Template Sub Tabs */}
+          <div className="flex border-b border-surface-container gap-2">
+            <button
+              onClick={() => setActiveTemplateTab("receipt")}
+              className={`px-5 py-3 font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                activeTemplateTab === "receipt"
+                  ? "border-emerald-600 text-emerald-600 bg-emerald-50/50"
+                  : "border-transparent text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              1. Bukti Pembayaran (Kwitansi Lunas)
+            </button>
+            <button
+              onClick={() => setActiveTemplateTab("reminder")}
+              className={`px-5 py-3 font-bold text-sm border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+                activeTemplateTab === "reminder"
+                  ? "border-emerald-600 text-emerald-600 bg-emerald-50/50"
+                  : "border-transparent text-on-surface-variant hover:text-on-surface"
+              }`}
+            >
+              <AlertCircle className="w-4 h-4" />
+              2. Pemberitahuan Tagihan Belajar
+            </button>
+          </div>
+
+          {/* Editor and Preview Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Editor Area */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-label-md font-bold text-on-surface">
+                    Editor Teks Template ({activeTemplateTab === 'receipt' ? 'Bukti Pembayaran' : 'Tagihan Belajar'})
+                  </label>
+                  <span className="text-xs text-on-surface-variant">Gunakan format markdown WhatsApp (*tebal*, _miring_)</span>
+                </div>
+
+                {/* Variable Inserter Toolbar */}
+                <div className="p-3 bg-surface-container-lowest rounded-xl border border-outline-variant/60 space-y-2">
+                  <span className="text-[11px] font-bold uppercase text-on-surface-variant tracking-wider block">
+                    Klik variabel untuk menyisipkan ke teks:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { key: "nama_murid", label: "Nama Murid" },
+                      { key: "nis", label: "NIS" },
+                      { key: "no_kwitansi", label: "No. Kwitansi" },
+                      { key: activeTemplateTab === 'receipt' ? "jenis_pembayaran" : "jenis_tagihan", label: activeTemplateTab === 'receipt' ? "Jenis Pembayaran" : "Jenis Tagihan" },
+                      { key: "periode", label: "Periode Bulan" },
+                      { key: "nominal", label: "Nominal (Rp)" },
+                      ...(activeTemplateTab === 'receipt'
+                        ? [
+                            { key: "tanggal_bayar", label: "Tanggal Bayar" },
+                            { key: "metode_bayar", label: "Metode Bayar" }
+                          ]
+                        : [
+                            { key: "jatuh_tempo", label: "Jatuh Tempo" }
+                          ]),
+                      { key: "status", label: "Status" }
+                    ].map(v => (
+                      <button
+                        key={v.key}
+                        type="button"
+                        onClick={() => insertVariableToTemplate(v.key)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-outline hover:border-emerald-500 hover:text-emerald-700 rounded-lg text-xs font-mono font-bold transition-all shadow-xs cursor-pointer"
+                        title={`Sisipkan {${v.key}}`}
+                      >
+                        +{`{${v.key}}`}
+                        <span className="text-[10px] text-on-surface-variant font-sans font-normal">({v.label})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <textarea
+                  rows={18}
+                  value={waTemplates[activeTemplateTab].content}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setWaTemplates(prev => ({
+                      ...prev,
+                      [activeTemplateTab]: {
+                        ...prev[activeTemplateTab],
+                        content: val
+                      }
+                    }));
+                  }}
+                  className="w-full p-4 rounded-xl border border-outline focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none bg-surface text-on-surface font-mono text-xs leading-relaxed"
+                  placeholder="Ketik format template pesan di sini..."
+                ></textarea>
+
+                <div className="flex justify-between items-center text-xs text-on-surface-variant pt-2 border-t border-surface-container">
+                  <span>Jumlah karakter: <strong>{waTemplates[activeTemplateTab].content.length}</strong></span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleResetTemplate(activeTemplateTab)}
+                      className="text-on-surface-variant hover:text-error hover:underline cursor-pointer"
+                    >
+                      Kembalikan ke Teks Awal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Live WhatsApp Mockup Preview */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="bg-[#EFEAE2] p-5 rounded-2xl border border-outline-variant shadow-sm space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-black/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center font-bold text-xs">
+                      AHE
+                    </div>
+                    <div>
+                      <p className="font-bold text-xs text-slate-800">Admin AHE Tepus Wetan</p>
+                      <p className="text-[10px] text-slate-500">Live WhatsApp Preview</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                    Simulasi Penerima
+                  </span>
+                </div>
+
+                {/* WhatsApp Chat Bubble */}
+                <div className="bg-white rounded-2xl rounded-tl-none p-4 shadow-sm text-xs font-mono leading-relaxed whitespace-pre-wrap text-slate-900 border border-black/5 relative">
+                  {formatTemplateMessage(waTemplates[activeTemplateTab].content, {
+                    studentName: activeTemplateTab === 'receipt' ? "Elmeira Jenna Javeria" : "Azhar Nuha Pratama",
+                    nis: activeTemplateTab === 'receipt' ? "AHE260042" : "AHE260026",
+                    receiptNumber: "RCP-202608-0031",
+                    paymentTypeName: "SPP Les AHE",
+                    periodMonth: "Agustus 2026",
+                    amount: "90.000",
+                    paidDate: "24 Agustus 2026",
+                    paymentMethod: "Transfer Bank",
+                    dueDate: "30 Agustus 2026",
+                    status: activeTemplateTab === 'receipt' ? "🟢 LUNAS" : "🔴 BELUM DIBAYAR"
+                  })}
+                  <div className="text-right text-[10px] text-slate-400 mt-2 flex items-center justify-end gap-1 font-sans">
+                    <span>14:30</span>
+                    <span className="text-blue-500">✓✓</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/80 p-3 rounded-xl text-[11px] text-slate-600 border border-slate-200 space-y-1 font-sans">
+                  <p className="font-bold text-slate-800 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Informasi Live Preview:
+                  </p>
+                  <p>Data nama murid, NIS, kwitansi, dan nominal pada simulasi di atas akan otomatis digantikan sesuai dengan data murid yang dipilih saat mengirim pesan.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

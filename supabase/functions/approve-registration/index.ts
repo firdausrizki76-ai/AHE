@@ -82,6 +82,7 @@ Deno.serve(async (req: Request) => {
         regency: registration.regency,
         father_name: registration.father_name,
         mother_name: registration.mother_name,
+        whatsapp: registration.whatsapp,
         school_origin: registration.school_origin,
         school_class: registration.school_class,
         photo_url: registration.photo_url,
