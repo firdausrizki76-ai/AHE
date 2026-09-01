@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Shield, BookOpen, GraduationCap, ArrowLeft, LogIn, Eye, EyeOff, Info } from "lucide-react";
+import { ArrowLeft, LogIn, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
@@ -12,7 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -56,7 +55,7 @@ export default function LoginPage() {
 
       if (error) {
         if (error.message === "Invalid login credentials") {
-          toast.error("Username/Email atau password salah. Silakan periksa kembali.");
+          toast.error("Username/NIS/NIP atau password salah. Silakan periksa kembali.");
         } else {
           toast.error(error.message);
         }
@@ -69,11 +68,6 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleQuickFill = (idVal: string, passVal: string) => {
-    setIdentifier(idVal);
-    setPassword(passVal);
   };
 
   return (
@@ -111,7 +105,7 @@ export default function LoginPage() {
                 </label>
                 <input 
                   className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface placeholder:text-outline" 
-                  placeholder="Contoh: AHE260003 / AHETW-001 / admin" 
+                  placeholder="Masukkan email, NIS, NIP, atau username" 
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
@@ -162,60 +156,6 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
-
-            {/* Collapsible Info / Quick Reference for testing */}
-            <div className="pt-2 border-t border-surface-container">
-              <button
-                type="button"
-                onClick={() => setShowHelp(!showHelp)}
-                className="w-full flex items-center justify-between text-label-sm text-on-surface-variant hover:text-primary transition-colors py-1"
-              >
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Info className="w-4 h-4 text-primary" />
-                  Contoh Akun Riil Database
-                </span>
-                <span className="text-body-xs underline">{showHelp ? 'Tutup' : 'Lihat Akun'}</span>
-              </button>
-
-              {showHelp && (
-                <div className="mt-3 space-y-2.5 animate-in fade-in slide-in-from-top-2">
-                  <div className="grid grid-cols-3 gap-2">
-                    <button 
-                      type="button"
-                      onClick={() => handleQuickFill('admin', 'password')}
-                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 transition-all text-center group"
-                    >
-                      <Shield className="w-4 h-4 text-purple-600 mb-1" />
-                      <span className="text-label-xs font-bold text-on-surface">Admin</span>
-                      <span className="text-[10px] text-on-surface-variant font-mono">admin</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => handleQuickFill('AHETW-001', 'password')}
-                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-amber-200 hover:border-amber-500 hover:bg-amber-50/50 transition-all text-center group"
-                    >
-                      <BookOpen className="w-4 h-4 text-amber-600 mb-1" />
-                      <span className="text-label-xs font-bold text-on-surface">Guru (Sawitri)</span>
-                      <span className="text-[10px] text-on-surface-variant font-mono">AHETW-001</span>
-                    </button>
-
-                    <button 
-                      type="button"
-                      onClick={() => handleQuickFill('AHE260003', 'password')}
-                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all text-center group"
-                    >
-                      <GraduationCap className="w-4 h-4 text-emerald-600 mb-1" />
-                      <span className="text-label-xs font-bold text-on-surface">Murid (Mahesvari)</span>
-                      <span className="text-[10px] text-on-surface-variant font-mono">AHE260003</span>
-                    </button>
-                  </div>
-                  <p className="text-center text-[11px] text-on-surface-variant">
-                    Password default: <strong className="font-mono">password</strong>. Klik tombol role di atas untuk auto-fill form.
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
           
           <div className="bg-surface-container-low px-6 py-4 border-t border-surface-container text-center">
