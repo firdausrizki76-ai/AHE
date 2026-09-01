@@ -295,7 +295,7 @@ export default function ManajemenAkunPage() {
 
       {/* Stats Bento Grid */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-label-sm font-medium">Total Akun</span>
             <Users className="w-5 h-5 text-primary" />
@@ -303,7 +303,7 @@ export default function ManajemenAkunPage() {
           <p className="text-headline-lg font-extrabold text-on-surface mt-2">{loading ? "..." : stats.total}</p>
         </div>
 
-        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-label-sm font-medium">Admin</span>
             <Shield className="w-5 h-5 text-purple-600" />
@@ -311,7 +311,7 @@ export default function ManajemenAkunPage() {
           <p className="text-headline-lg font-extrabold text-purple-600 mt-2">{loading ? "..." : stats.admin}</p>
         </div>
 
-        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-label-sm font-medium">Guru</span>
             <BookOpen className="w-5 h-5 text-amber-600" />
@@ -319,7 +319,7 @@ export default function ManajemenAkunPage() {
           <p className="text-headline-lg font-extrabold text-amber-600 mt-2">{loading ? "..." : stats.guru}</p>
         </div>
 
-        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+        <div className="bg-white p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-label-sm font-medium">Murid</span>
             <GraduationCap className="w-5 h-5 text-emerald-600" />
@@ -327,7 +327,7 @@ export default function ManajemenAkunPage() {
           <p className="text-headline-lg font-extrabold text-emerald-600 mt-2">{loading ? "..." : stats.murid}</p>
         </div>
 
-        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between col-span-2 md:col-span-1">
+        <div className="bg-white p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between col-span-2 md:col-span-1">
           <div className="flex items-center justify-between text-on-surface-variant">
             <span className="text-label-sm font-medium">Belum Punya Akun</span>
             <AlertCircle className="w-5 h-5 text-error" />
@@ -337,7 +337,7 @@ export default function ManajemenAkunPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-2xl border border-outline-variant shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Role Tabs */}
         <div className="flex items-center gap-1.5 p-1 bg-surface-container rounded-xl w-full md:w-auto overflow-x-auto">
           {[
@@ -351,7 +351,7 @@ export default function ManajemenAkunPage() {
               onClick={() => setRoleFilter(tab.key as any)}
               className={`px-4 py-2 rounded-lg text-label-sm font-bold transition-all whitespace-nowrap ${
                 roleFilter === tab.key
-                  ? 'bg-surface text-primary shadow-sm'
+                  ? 'bg-white text-primary shadow-sm'
                   : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
@@ -384,7 +384,7 @@ export default function ManajemenAkunPage() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -519,24 +519,27 @@ export default function ManajemenAkunPage() {
 
       {/* MODAL: Tambah Akun Baru */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl border border-outline-variant max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-surface-container pb-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="relative bg-white w-full max-w-lg rounded-2xl border border-outline-variant shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-container flex items-center justify-between bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary" />
                 Tambah Akun Baru
               </h3>
               <button 
+                type="button"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="text-on-surface-variant hover:text-on-surface"
+                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateAccount} className="space-y-4">
+            {/* Modal Body */}
+            <form onSubmit={handleCreateAccount} className="p-6 space-y-5">
               {/* Role Selection */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-label-sm font-bold text-on-surface">Pilih Role Akun</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(['murid', 'guru', 'admin'] as const).map((r) => (
@@ -551,9 +554,9 @@ export default function ManajemenAkunPage() {
                           student_id: '',
                         });
                       }}
-                      className={`p-3 rounded-xl border text-center font-bold text-label-sm capitalize transition-all ${
+                      className={`py-3 px-2 rounded-xl border text-center font-bold text-label-sm capitalize transition-all ${
                         createForm.role === r
-                          ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                          ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary'
                           : 'border-outline-variant hover:border-primary text-on-surface-variant'
                       }`}
                     >
@@ -659,13 +662,14 @@ export default function ManajemenAkunPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreatePassword(!showCreatePassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
                   >
                     {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
+              {/* Modal Footer */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container">
                 <button
                   type="button"
@@ -689,28 +693,40 @@ export default function ManajemenAkunPage() {
 
       {/* MODAL: Reset Password */}
       {isResetModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl border border-outline-variant max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-surface-container pb-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="relative bg-white w-full max-w-md rounded-2xl border border-outline-variant shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-container flex items-center justify-between bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
                 <RotateCcw className="w-5 h-5 text-amber-600" />
                 Reset Password Akun
               </h3>
               <button 
+                type="button"
                 onClick={() => setIsResetModalOpen(false)}
-                className="text-on-surface-variant hover:text-on-surface"
+                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-surface-container-low p-4 rounded-xl space-y-1">
-              <p className="text-label-sm text-on-surface-variant">Akun Target:</p>
-              <p className="font-bold text-on-surface text-body-md">{selectedUser.full_name}</p>
-              <p className="text-body-xs font-mono text-on-surface-variant">{selectedUser.email}</p>
-            </div>
+            {/* Modal Body */}
+            <form onSubmit={handleResetPassword} className="p-6 space-y-5">
+              {/* Target User Info Card */}
+              <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/50 space-y-1">
+                <p className="text-label-xs font-bold text-on-surface-variant uppercase">Akun Pengguna:</p>
+                <p className="font-bold text-on-surface text-body-md">{selectedUser.full_name}</p>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="font-mono text-body-xs text-on-surface-variant bg-white px-2 py-0.5 rounded border border-outline-variant/60">
+                    {selectedUser.identifier || selectedUser.email}
+                  </span>
+                  <span className="text-label-xs uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                    {selectedUser.role}
+                  </span>
+                </div>
+              </div>
 
-            <form onSubmit={handleResetPassword} className="space-y-4">
+              {/* New Password Input */}
               <div className="space-y-1.5">
                 <label className="text-label-sm font-bold text-on-surface">Password Baru</label>
                 <div className="relative">
@@ -720,53 +736,70 @@ export default function ManajemenAkunPage() {
                     placeholder="Masukkan password baru..."
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface text-body-sm focus:outline-none focus:border-primary pr-10 font-mono"
+                    className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-white text-on-surface text-body-md focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 pr-10 font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowResetPassword(!showResetPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
                   >
                     {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Quick preset buttons */}
-              <div className="flex items-center gap-2">
-                <span className="text-body-xs text-on-surface-variant">Preset:</span>
-                <button
-                  type="button"
-                  onClick={() => setNewPassword('password')}
-                  className="px-2.5 py-1 bg-surface-container hover:bg-surface-container-high rounded-md text-label-xs font-bold font-mono text-on-surface"
-                >
-                  password
-                </button>
-                {selectedUser.identifier && (
+              {/* Quick Preset Buttons */}
+              <div className="space-y-1.5">
+                <span className="text-body-xs text-on-surface-variant block font-medium">Preset Cepat:</span>
+                <div className="flex items-center gap-2 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setNewPassword(selectedUser.identifier)}
-                    className="px-2.5 py-1 bg-surface-container hover:bg-surface-container-high rounded-md text-label-xs font-bold font-mono text-on-surface"
+                    onClick={() => setNewPassword('password')}
+                    className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant/60 transition-colors"
                   >
-                    {selectedUser.identifier}
+                    password
                   </button>
-                )}
+                  {selectedUser.identifier && selectedUser.identifier !== '-' && (
+                    <button
+                      type="button"
+                      onClick={() => setNewPassword(selectedUser.identifier)}
+                      className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant/60 transition-colors"
+                    >
+                      {selectedUser.identifier}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setNewPassword('123456')}
+                    className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant/60 transition-colors"
+                  >
+                    123456
+                  </button>
+                </div>
               </div>
 
+              {/* Modal Footer */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container">
                 <button
                   type="button"
                   onClick={() => setIsResetModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm"
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2.5 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50"
+                  className="px-5 py-2.5 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50 flex items-center gap-2"
                 >
-                  {actionLoading ? 'Menyimpan...' : 'Simpan Password Baru'}
+                  {actionLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan Password Baru'
+                  )}
                 </button>
               </div>
             </form>
@@ -776,44 +809,58 @@ export default function ManajemenAkunPage() {
 
       {/* MODAL: Hapus Akun */}
       {isDeleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-2xl border border-outline-variant max-w-md w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-surface-container pb-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="relative bg-white w-full max-w-md rounded-2xl border border-outline-variant shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-surface-container flex items-center justify-between bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-error flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
+                <AlertCircle className="w-5 h-5 text-error" />
                 Hapus Akun Pengguna
               </h3>
               <button 
+                type="button"
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="text-on-surface-variant hover:text-on-surface"
+                className="p-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-body-md text-on-surface">
-              Apakah Anda yakin ingin menghapus akun login untuk <strong className="text-primary">{selectedUser.full_name}</strong> ({selectedUser.email})?
-            </p>
-            <p className="text-body-xs text-on-surface-variant bg-error/10 text-error p-3 rounded-xl">
-              Akun ini tidak akan dapat login lagi ke portal. Data murid / guru terkait akan tetap ada dan tautan akun akan dilepas.
-            </p>
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <p className="text-body-md text-on-surface">
+                Apakah Anda yakin ingin menghapus akun login untuk <strong className="text-primary">{selectedUser.full_name}</strong> ({selectedUser.email})?
+              </p>
+              <div className="text-body-xs text-error bg-error-container/40 border border-error-container p-3.5 rounded-xl space-y-1">
+                <p className="font-bold">Perhatian:</p>
+                <p>Akun ini tidak akan dapat login lagi ke portal. Data murid / guru di sistem akan tetap tersimpan dan status tautan akun dilepas.</p>
+              </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container">
-              <button
-                type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={actionLoading}
-                className="px-5 py-2.5 bg-error text-white hover:bg-error/90 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50"
-              >
-                {actionLoading ? 'Menghapus...' : 'Ya, Hapus Akun'}
-              </button>
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-surface-container">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 bg-error text-white hover:bg-error/90 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50 flex items-center gap-2"
+                >
+                  {actionLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Menghapus...
+                    </>
+                  ) : (
+                    'Ya, Hapus Akun'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
