@@ -7,7 +7,7 @@ import { useAuthStore } from "@/lib/store";
 import { 
   LayoutDashboard, Users, UserCog, BookOpen, CalendarCheck, 
   Trophy, TrendingUp, GraduationCap, CreditCard, Wallet, 
-  Gift, FileText, Menu, X, LogOut, Search, UserPlus
+  Gift, FileText, Menu, X, LogOut, Search, UserPlus, KeyRound
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase/client";
@@ -23,6 +23,7 @@ const adminMenu: SidebarItem[] = [
   { name: "Pendaftaran", href: "/admin/pendaftaran", icon: FileText },
   { name: "Data Murid", href: "/admin/murid", icon: Users },
   { name: "Data Guru", href: "/admin/guru", icon: UserCog },
+  { name: "Manajemen Akun", href: "/admin/akun", icon: KeyRound },
   { name: "Manajemen Kelas", href: "/admin/kelas", icon: BookOpen },
   { name: "Absensi", href: "/admin/absensi", icon: CalendarCheck },
   { name: "Prestasi", href: "/admin/prestasi", icon: Trophy },

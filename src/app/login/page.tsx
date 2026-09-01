@@ -1,57 +1,80 @@
 "use client";
 
 import { useState } from "react";
-import { useAuthStore } from "@/lib/store";
-import { User } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Shield, BookOpen, GraduationCap, ArrowLeft, LogIn } from "lucide-react";
+import { Shield, BookOpen, GraduationCap, ArrowLeft, LogIn, Eye, EyeOff, Info } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!identifier.trim()) {
+      toast.error("Silakan masukkan email, NIS, NIP, atau username Anda.");
+      return;
+    }
+    if (!password) {
+      toast.error("Silakan masukkan password Anda.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Map username to email
-      let email = username.trim();
-      if (!email.includes("@")) {
-        if (email === "guru") {
-          email = "guru1@ahe.com";
-        } else if (email === "murid") {
-          email = "murid1@ahe.com";
-        } else {
-          email = `${email}@ahe.com`;
+      let emailToAuth = identifier.trim();
+
+      // Resolve identifier (Email, NIS, NIP, Username) dynamically via RPC
+      try {
+        const { data: resolvedEmail, error: rpcError } = await supabase.rpc('resolve_login_identifier' as any, {
+          p_identifier: identifier.trim()
+        });
+
+        if (!rpcError && resolvedEmail) {
+          emailToAuth = resolvedEmail as string;
+        } else if (!emailToAuth.includes("@")) {
+          emailToAuth = `${emailToAuth.toLowerCase()}@ahe.com`;
+        }
+      } catch (rpcErr) {
+        if (!emailToAuth.includes("@")) {
+          emailToAuth = `${emailToAuth.toLowerCase()}@ahe.com`;
         }
       }
 
+      // Supabase Authentication
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: emailToAuth,
+        password: password,
       });
 
       if (error) {
-        toast.error(error.message === "Invalid login credentials" ? "Username atau password salah" : error.message);
+        if (error.message === "Invalid login credentials") {
+          toast.error("Username/Email atau password salah. Silakan periksa kembali.");
+        } else {
+          toast.error(error.message);
+        }
       } else if (data.session) {
-        toast.success(`Selamat datang kembali!`);
+        toast.success("Berhasil masuk ke portal!");
       }
-    } catch (error) {
-      toast.error("Terjadi kesalahan sistem");
+    } catch (error: any) {
+      console.error("Login exception:", error);
+      toast.error("Terjadi kendala pada sistem autentikasi. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isAdminActive = username === 'admin';
-  const isGuruActive = username === 'guru' || username === 'guru1';
-  const isMuridActive = username === 'murid' || username === 'murid1';
+  const handleQuickFill = (idVal: string, passVal: string) => {
+    setIdentifier(idVal);
+    setPassword(passVal);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden font-body-md">
@@ -63,8 +86,11 @@ export default function LoginPage() {
         <div className="absolute bottom-[20%] left-[10%] w-[400px] h-[400px] rounded-full bg-secondary/20 blur-[120px] animate-pulse" style={{ animationDelay: "2s" }}></div>
       </div>
 
-      <div className="w-full max-w-[400px] z-10 relative">
-        <Link href="/" className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary mb-6 transition-colors font-label-md font-bold">
+      <div className="w-full max-w-[420px] z-10 relative">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary mb-6 transition-colors font-label-md font-bold"
+        >
           <ArrowLeft className="w-5 h-5" />
           Kembali ke Beranda
         </Link>
@@ -74,37 +100,57 @@ export default function LoginPage() {
             {/* Logo Utama */}
             <img src="/LOGO UTAMA.png" alt="Logo Anak Hebat" width={80} height={80} className="mx-auto mb-4 object-contain drop-shadow-sm" />
             <h1 className="text-headline-md font-headline-md text-on-surface mb-2">Masuk ke Portal</h1>
-            <p className="text-body-sm text-on-surface-variant">Silakan masukkan akun Anda untuk melanjutkan</p>
+            <p className="text-body-sm text-on-surface-variant">Gunakan NIS (Murid), NIP (Guru), atau Email Terdaftar</p>
           </div>
           
-          <div className="p-8">
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2 flex flex-col">
-                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Username / Email</label>
+          <div className="p-8 space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1.5 flex flex-col">
+                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">
+                  Email / NIS / NIP / Username
+                </label>
                 <input 
-                  className="w-full px-4 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface" 
-                  placeholder="Masukkan username atau email" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface placeholder:text-outline" 
+                  placeholder="Contoh: AHE260003 / AHETW-001 / admin" 
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                   type="text"
+                  autoComplete="username"
                 />
               </div>
-              <div className="space-y-2 flex flex-col">
-                <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Password</label>
-                <input 
-                  className="w-full px-4 py-3 rounded-lg border border-outline-variant focus:ring-2 focus:ring-secondary focus:border-secondary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface" 
-                  placeholder="Masukkan password" 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+
+              <div className="space-y-1.5 flex flex-col">
+                <div className="flex items-center justify-between">
+                  <label className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">
+                    Password
+                  </label>
+                </div>
+                <div className="relative">
+                  <input 
+                    className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface pr-11 placeholder:text-outline" 
+                    placeholder="Masukkan password Anda" 
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
+
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-headline-sm text-headline-sm hover:bg-primary-container shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:active:scale-100"
+                className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-headline-sm text-headline-sm hover:bg-primary/90 shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:active:scale-100"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -116,34 +162,66 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+
+            {/* Collapsible Info / Quick Reference for testing */}
+            <div className="pt-2 border-t border-surface-container">
+              <button
+                type="button"
+                onClick={() => setShowHelp(!showHelp)}
+                className="w-full flex items-center justify-between text-label-sm text-on-surface-variant hover:text-primary transition-colors py-1"
+              >
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Info className="w-4 h-4 text-primary" />
+                  Contoh Akun Riil Database
+                </span>
+                <span className="text-body-xs underline">{showHelp ? 'Tutup' : 'Lihat Akun'}</span>
+              </button>
+
+              {showHelp && (
+                <div className="mt-3 space-y-2.5 animate-in fade-in slide-in-from-top-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button 
+                      type="button"
+                      onClick={() => handleQuickFill('admin', 'password')}
+                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-purple-200 hover:border-purple-500 hover:bg-purple-50/50 transition-all text-center group"
+                    >
+                      <Shield className="w-4 h-4 text-purple-600 mb-1" />
+                      <span className="text-label-xs font-bold text-on-surface">Admin</span>
+                      <span className="text-[10px] text-on-surface-variant font-mono">admin</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => handleQuickFill('AHETW-001', 'password')}
+                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-amber-200 hover:border-amber-500 hover:bg-amber-50/50 transition-all text-center group"
+                    >
+                      <BookOpen className="w-4 h-4 text-amber-600 mb-1" />
+                      <span className="text-label-xs font-bold text-on-surface">Guru (Sawitri)</span>
+                      <span className="text-[10px] text-on-surface-variant font-mono">AHETW-001</span>
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={() => handleQuickFill('AHE260003', 'password')}
+                      className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-surface border border-emerald-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition-all text-center group"
+                    >
+                      <GraduationCap className="w-4 h-4 text-emerald-600 mb-1" />
+                      <span className="text-label-xs font-bold text-on-surface">Murid (Mahesvari)</span>
+                      <span className="text-[10px] text-on-surface-variant font-mono">AHE260003</span>
+                    </button>
+                  </div>
+                  <p className="text-center text-[11px] text-on-surface-variant">
+                    Password default: <strong className="font-mono">password</strong>. Klik tombol role di atas untuk auto-fill form.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
           
-          <div className="bg-surface-container-low p-6 border-t border-surface-container">
-            <p className="text-center font-label-sm text-on-surface-variant mb-4">PILIH DEMO LOGIN</p>
-            <div className="grid grid-cols-3 gap-3">
-              <button 
-                onClick={() => { setUsername('admin'); setPassword('password'); }}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl bg-surface border transition-colors group ${isAdminActive ? 'border-primary shadow-sm bg-primary/5' : 'border-outline-variant hover:border-primary'}`}
-              >
-                <Shield className={`w-5 h-5 mb-1 transition-transform group-hover:scale-110 ${isAdminActive ? 'text-primary' : 'text-on-surface-variant'}`} />
-                <span className={`text-label-sm font-bold ${isAdminActive ? 'text-primary' : 'text-on-surface'}`}>admin</span>
-              </button>
-              <button 
-                onClick={() => { setUsername('guru'); setPassword('password'); }}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl bg-surface border transition-colors group ${isGuruActive ? 'border-secondary shadow-sm bg-secondary/5' : 'border-outline-variant hover:border-secondary'}`}
-              >
-                <BookOpen className={`w-5 h-5 mb-1 transition-transform group-hover:scale-110 ${isGuruActive ? 'text-secondary' : 'text-on-surface-variant'}`} />
-                <span className={`text-label-sm font-bold ${isGuruActive ? 'text-secondary' : 'text-on-surface'}`}>guru</span>
-              </button>
-              <button 
-                onClick={() => { setUsername('murid'); setPassword('password'); }}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl bg-surface border transition-colors group ${isMuridActive ? 'border-tertiary shadow-sm bg-tertiary/5' : 'border-outline-variant hover:border-tertiary'}`}
-              >
-                <GraduationCap className={`w-5 h-5 mb-1 transition-transform group-hover:scale-110 ${isMuridActive ? 'text-tertiary' : 'text-on-surface-variant'}`} />
-                <span className={`text-label-sm font-bold ${isMuridActive ? 'text-tertiary' : 'text-on-surface'}`}>murid</span>
-              </button>
-            </div>
-            <p className="text-center text-label-sm text-on-surface-variant mt-4">Klik salah satu role untuk langsung mengisi form.</p>
+          <div className="bg-surface-container-low px-6 py-4 border-t border-surface-container text-center">
+            <p className="text-body-xs text-on-surface-variant">
+              Belum punya akun murid? <Link href="/daftar" className="text-primary font-bold hover:underline">Daftar Murid Baru</Link>
+            </p>
           </div>
         </div>
       </div>
