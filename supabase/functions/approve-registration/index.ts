@@ -23,114 +23,29 @@ Deno.serve(async (req: Request) => {
       throw new Error("registration_id is required")
     }
 
-    // 1. Fetch registration record
-    const { data: registration, error: regError } = await supabase
+    // 1. Call database RPC for atomic, reliable approval
+    const { data: result, error: rpcError } = await supabase.rpc('admin_approve_registration', {
+      p_registration_id: registration_id
+    });
+
+    if (rpcError) {
+      throw new Error(`Approval failed: ${rpcError.message}`);
+    }
+
+    const { nis, full_name, email, student_id } = result as any;
+
+    // 2. Fetch registration data for WhatsApp notification
+    const { data: registration } = await supabase
       .from('registrations')
-      .select('*')
+      .select('whatsapp, father_name, mother_name, guardian_name')
       .eq('id', registration_id)
       .single();
 
-    if (regError || !registration) {
-      throw new Error(`Registration not found: ${regError?.message || ''}`);
-    }
-
-    if (registration.status === 'accepted') {
-      throw new Error("Registration is already approved");
-    }
-
-    // 2. Generate NIS
-    const { data: nisData, error: nisError } = await supabase
-      .rpc('generate_nis');
-
-    if (nisError || !nisData) {
-      throw new Error(`Failed to generate NIS: ${nisError?.message || ''}`);
-    }
-
-    const nis = nisData as string;
-    const email = `${nis.toLowerCase()}@ahe.com`;
-    const password = 'password'; // default password
-
-    // 3. Create Auth User
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { role: 'murid' }
-    });
-
-    if (authError || !authData.user) {
-      throw new Error(`Failed to create auth user: ${authError?.message || ''}`);
-    }
-
-    const userId = authData.user.id;
-
-    // 4. Insert Student record
-    const { data: student, error: studentError } = await supabase
-      .from('students')
-      .insert({
-        nis,
-        full_name: registration.full_name,
-        nickname: registration.nickname,
-        gender: registration.gender,
-        birth_place: registration.birth_place,
-        birth_date: registration.birth_date,
-        address: registration.address,
-        rt: registration.rt,
-        rw: registration.rw,
-        village: registration.village,
-        district: registration.district,
-        regency: registration.regency,
-        father_name: registration.father_name,
-        mother_name: registration.mother_name,
-        whatsapp: registration.whatsapp,
-        school_origin: registration.school_origin,
-        school_class: registration.school_class,
-        photo_url: registration.photo_url,
-        status: 'active',
-        user_id: userId,
-        registration_id: registration.id
-      })
-      .select()
-      .single();
-
-    if (studentError || !student) {
-      // Cleanup auth user on failure
-      await supabase.auth.admin.deleteUser(userId);
-      throw new Error(`Failed to create student record: ${studentError?.message || ''}`);
-    }
-
-    // 5. Insert student_les records
-    const lesTypes = registration.les_types || [];
-    for (const lesType of lesTypes) {
-      let maxLevel = null;
-      if (lesType === 'les_ahe') maxLevel = 8;
-      else if (lesType === 'les_ase') maxLevel = 16;
-
-      const lesMapelName = lesType === 'les_mapel' ? registration.les_mapel_detail : null;
-
-      await supabase.from('student_les').insert({
-        student_id: student.id,
-        les_type: lesType,
-        les_mapel_name: lesMapelName,
-        current_level: 1,
-        max_level: maxLevel,
-        status: 'active'
-      });
-    }
-
-    // 6. Update registration status
-    await supabase
-      .from('registrations')
-      .update({
-        status: 'accepted',
-        reviewed_at: new Date().toISOString()
-      })
-      .eq('id', registration_id);
-
-    // 7. Send WhatsApp notification
+    // 3. Send WhatsApp notification
     const fonnteKey = Deno.env.get("FONNTE_API_KEY");
-    if (fonnteKey && registration.whatsapp) {
-      const message = `Halo Bapak/Ibu ${registration.father_name || registration.mother_name || 'Wali'}, pendaftaran ananda ${registration.full_name} di AHE Tepus Wetan telah DISETUJUI.\n\nBerikut akun login ananda:\nUsername: ${nis}\nPassword: ${password}\n\nSilakan gunakan akun ini untuk masuk ke portal murid. Terima kasih!`;
+    if (fonnteKey && registration?.whatsapp) {
+      const parentName = registration.father_name || registration.mother_name || registration.guardian_name || 'Wali';
+      const message = `Halo Bapak/Ibu ${parentName}, pendaftaran ananda *${full_name}* di AHE Tepus Wetan telah *DISETUJUI*.\n\nBerikut akun login murid untuk masuk ke portal belajar:\n👤 Username / NIS: *${nis}*\n📧 Email: *${email}*\n🔑 Password Default: *password*\n🌐 Login di: https://ahe-tepus.vercel.app/login\n\nSilakan simpan informasi ini. Terima kasih!`;
       
       try {
         await fetch("https://api.fonnte.com/send", {
@@ -150,23 +65,22 @@ Deno.serve(async (req: Request) => {
           recipient: registration.whatsapp,
           message: message,
           status: 'sent',
-          reference_id: student.id,
+          reference_id: student_id,
           sent_at: new Date().toISOString()
         });
       } catch (waErr) {
         console.error("Failed to send WhatsApp message:", waErr);
-        // Log as failed
         await supabase.from('wa_notifications').insert({
           type: 'confirm_reg',
           recipient: registration.whatsapp,
           message: message,
           status: 'failed',
-          reference_id: student.id
+          reference_id: student_id
         });
       }
     }
 
-    return new Response(JSON.stringify({ success: true, student, nis, email }), {
+    return new Response(JSON.stringify({ success: true, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     })
