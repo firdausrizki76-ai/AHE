@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { createPortal } from "react-dom";
 import { 
   Users, KeyRound, Search, Plus, Trash2, 
   RotateCcw, Shield, GraduationCap, BookOpen, Copy, 
@@ -25,7 +24,6 @@ interface UserAccount {
 }
 
 export default function ManajemenAkunPage() {
-  const [mounted, setMounted] = useState(false);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [unlinkedStudents, setUnlinkedStudents] = useState<any[]>([]);
   const [unlinkedTeachers, setUnlinkedTeachers] = useState<any[]>([]);
@@ -55,10 +53,6 @@ export default function ManajemenAkunPage() {
   // Form states for Reset Modal
   const [newPassword, setNewPassword] = useState('password');
   const [showResetPassword, setShowResetPassword] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Fetch all accounts and unlinked data
   const fetchAccounts = useCallback(async () => {
@@ -268,86 +262,86 @@ export default function ManajemenAkunPage() {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8 font-body-md max-w-full overflow-hidden">
+    <div className="space-y-6 md:space-y-8 font-body-md">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 flex items-center gap-2.5">
-            <KeyRound className="w-7 h-7 sm:w-8 sm:h-8 text-primary shrink-0" />
-            <span>Manajemen Akun</span>
+          <h2 className="text-headline-lg font-headline-lg text-on-surface flex items-center gap-3">
+            <KeyRound className="w-8 h-8 text-primary shrink-0" />
+            Manajemen Akun Pengguna
           </h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-body-md text-on-surface-variant mt-1">
             Kelola akun autentikasi real (Admin, Guru, Murid), reset password, dan pantau status login.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">
           <button
             onClick={handleBatchGenerate}
             disabled={actionLoading}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2.5 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 rounded-xl font-bold transition-all disabled:opacity-50 text-xs sm:text-sm active:scale-95 shadow-sm"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary-container/20 text-secondary hover:bg-secondary-container/30 border border-secondary-container/40 rounded-xl font-bold transition-all disabled:opacity-50 text-label-md active:scale-95 shadow-sm"
           >
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <Sparkles className="w-4 h-4" />
             <span className="whitespace-nowrap">Generate Otomatis</span>
           </button>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white hover:bg-primary/90 rounded-xl font-bold shadow-md transition-all text-xs sm:text-sm active:scale-95"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-on-primary hover:bg-primary/90 rounded-xl font-bold shadow-md transition-all text-label-md active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span className="whitespace-nowrap">Tambah Akun</span>
+            <span className="whitespace-nowrap">Tambah Akun Baru</span>
           </button>
         </div>
       </div>
 
       {/* Stats Bento Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase">Total Akun</span>
-            <Users className="w-4 h-4 text-primary" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface-variant">
+            <span className="text-label-sm font-medium">Total Akun</span>
+            <Users className="w-5 h-5 text-primary" />
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2">{loading ? "..." : stats.total}</p>
+          <p className="text-headline-lg font-extrabold text-on-surface mt-2">{loading ? "..." : stats.total}</p>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase">Admin</span>
-            <Shield className="w-4 h-4 text-purple-600" />
+        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface-variant">
+            <span className="text-label-sm font-medium">Admin</span>
+            <Shield className="w-5 h-5 text-purple-600" />
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-purple-600 mt-2">{loading ? "..." : stats.admin}</p>
+          <p className="text-headline-lg font-extrabold text-purple-600 mt-2">{loading ? "..." : stats.admin}</p>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase">Guru</span>
-            <BookOpen className="w-4 h-4 text-amber-600" />
+        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface-variant">
+            <span className="text-label-sm font-medium">Guru</span>
+            <BookOpen className="w-5 h-5 text-amber-600" />
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-2">{loading ? "..." : stats.guru}</p>
+          <p className="text-headline-lg font-extrabold text-amber-600 mt-2">{loading ? "..." : stats.guru}</p>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase">Murid</span>
-            <GraduationCap className="w-4 h-4 text-emerald-600" />
+        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-on-surface-variant">
+            <span className="text-label-sm font-medium">Murid</span>
+            <GraduationCap className="w-5 h-5 text-emerald-600" />
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-2">{loading ? "..." : stats.murid}</p>
+          <p className="text-headline-lg font-extrabold text-emerald-600 mt-2">{loading ? "..." : stats.murid}</p>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase">Belum Tertaut</span>
-            <AlertCircle className="w-4 h-4 text-rose-600" />
+        <div className="bg-surface p-5 rounded-2xl border border-outline-variant shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-on-surface-variant">
+            <span className="text-label-sm font-medium">Belum Punya Akun</span>
+            <AlertCircle className="w-5 h-5 text-error" />
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-2">{loading ? "..." : stats.unlinkedCount}</p>
+          <p className="text-headline-lg font-extrabold text-error mt-2">{loading ? "..." : stats.unlinkedCount}</p>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Role Tabs */}
-        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl overflow-x-auto">
+        <div className="flex items-center gap-1.5 p-1 bg-surface-container rounded-xl overflow-x-auto">
           {[
-            { key: 'all', label: 'Semua' },
+            { key: 'all', label: 'Semua Akun' },
             { key: 'admin', label: 'Admin' },
             { key: 'guru', label: 'Guru' },
             { key: 'murid', label: 'Murid' },
@@ -355,10 +349,10 @@ export default function ManajemenAkunPage() {
             <button
               key={tab.key}
               onClick={() => setRoleFilter(tab.key as any)}
-              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap text-center ${
+              className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-label-sm font-bold transition-all whitespace-nowrap text-center ${
                 roleFilter === tab.key
-                  ? 'bg-white text-primary shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-surface text-primary shadow-sm'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               {tab.label}
@@ -367,21 +361,21 @@ export default function ManajemenAkunPage() {
         </div>
 
         {/* Search Input & Refresh */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-grow md:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
             <input
               type="text"
               placeholder="Cari nama, email, NIS, NIP..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-primary focus:bg-white transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-xl text-body-sm text-on-surface focus:outline-none focus:border-primary transition-colors"
             />
           </div>
           <button
             onClick={fetchAccounts}
             disabled={loading}
-            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-600 hover:text-primary transition-colors shrink-0"
+            className="p-2.5 bg-surface-container hover:bg-surface-container-high rounded-xl text-on-surface-variant hover:text-primary transition-colors shrink-0"
             title="Muat Ulang Data"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -389,30 +383,30 @@ export default function ManajemenAkunPage() {
         </div>
       </div>
 
-      {/* MOBILE VIEW: Cards Layout (Visible only on mobile/tablet screens) */}
+      {/* MOBILE VIEW: User Cards (< md screens) */}
       <div className="block md:hidden space-y-3">
         {loading ? (
-          <div className="p-8 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
+          <div className="p-8 text-center text-on-surface-variant bg-surface rounded-2xl border border-outline-variant">
             <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto mb-2" />
-            <span className="font-bold text-sm">Memuat daftar akun...</span>
+            <span className="font-bold text-body-sm">Memuat daftar akun...</span>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
-            <p className="font-bold text-base text-slate-800">Tidak ada akun ditemukan</p>
-            <p className="text-xs mt-1">Coba ubah kata kunci pencarian.</p>
+          <div className="p-8 text-center text-on-surface-variant bg-surface rounded-2xl border border-outline-variant">
+            <p className="font-bold text-headline-sm text-on-surface">Tidak ada akun ditemukan</p>
+            <p className="text-body-sm mt-1">Coba ubah kata kunci pencarian.</p>
           </div>
         ) : (
           filteredUsers.map((u) => {
             const roleBadge = 
-              u.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200'
-              : u.role === 'guru' ? 'bg-amber-100 text-amber-700 border-amber-200'
-              : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+              u.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-300'
+              : u.role === 'guru' ? 'bg-amber-100 text-amber-700 border-amber-300'
+              : 'bg-emerald-100 text-emerald-700 border-emerald-300';
 
             return (
-              <div key={u.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              <div key={u.id} className="bg-surface p-4 rounded-2xl border border-outline-variant shadow-sm space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm text-white shrink-0 ${
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-label-sm text-white shrink-0 ${
                       u.role === 'admin' ? 'bg-purple-600'
                       : u.role === 'guru' ? 'bg-amber-600'
                       : 'bg-emerald-600'
@@ -420,22 +414,22 @@ export default function ManajemenAkunPage() {
                       {u.full_name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm">{u.full_name || '-'}</h4>
-                      <p className="text-xs text-slate-500 truncate max-w-[180px]">{u.email}</p>
+                      <h4 className="font-bold text-on-surface text-body-md">{u.full_name || '-'}</h4>
+                      <p className="text-body-xs text-on-surface-variant truncate max-w-[180px]">{u.email}</p>
                     </div>
                   </div>
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${roleBadge} uppercase shrink-0`}>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-xs font-bold border ${roleBadge} uppercase shrink-0`}>
                     {u.role}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 text-xs">
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surface-container text-body-xs">
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">ID / NIS / NIP:</span>
-                    <span className="font-mono font-bold text-slate-800">{u.identifier || '-'}</span>
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">ID / NIS / NIP:</span>
+                    <span className="font-mono font-bold text-on-surface">{u.identifier || '-'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-semibold">WhatsApp:</span>
+                    <span className="text-on-surface-variant block text-[10px] uppercase font-bold">WhatsApp:</span>
                     {u.phone !== '-' ? (
                       <button 
                         onClick={() => sendWhatsAppInfo(u)}
@@ -445,16 +439,16 @@ export default function ManajemenAkunPage() {
                         <span className="truncate">{u.phone}</span>
                       </button>
                     ) : (
-                      <span className="text-slate-400">-</span>
+                      <span className="text-outline">-</span>
                     )}
                   </div>
                 </div>
 
-                {/* Mobile Action Buttons */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100">
+                {/* Action Buttons */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-surface-container">
                   <button
                     onClick={() => copyCredentials(u)}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-2 bg-surface-container hover:bg-surface-container-high text-on-surface rounded-xl text-label-xs font-bold transition-all active:scale-95"
                   >
                     {copiedId === u.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedId === u.id ? 'Tersalin' : 'Salin'}</span>
@@ -465,7 +459,7 @@ export default function ManajemenAkunPage() {
                       setNewPassword('password');
                       setIsResetModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-300/60 rounded-xl text-label-xs font-bold transition-all active:scale-95"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Reset</span>
@@ -475,7 +469,7 @@ export default function ManajemenAkunPage() {
                       setSelectedUser(u);
                       setIsDeleteModalOpen(true);
                     }}
-                    className="flex items-center justify-center gap-1.5 py-2 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all active:scale-95"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-2 bg-error-container/30 hover:bg-error-container/50 text-error border border-error-container rounded-xl text-label-xs font-bold transition-all active:scale-95"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Hapus</span>
@@ -487,14 +481,14 @@ export default function ManajemenAkunPage() {
         )}
       </div>
 
-      {/* DESKTOP VIEW: Table Layout (Visible on desktop md screens and up) */}
-      <div className="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* DESKTOP VIEW: Data Table (≥ md screens) */}
+      <div className="hidden md:block bg-surface rounded-2xl border border-outline-variant shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider">
+              <tr className="bg-surface-container-lowest border-b border-surface-container text-on-surface-variant text-label-sm font-bold">
                 <th className="p-4">Pengguna / Nama</th>
-                <th className="p-4">Username / ID</th>
+                <th className="p-4">Username / ID Login</th>
                 <th className="p-4">Email Real</th>
                 <th className="p-4">Role</th>
                 <th className="p-4">WhatsApp</th>
@@ -502,10 +496,10 @@ export default function ManajemenAkunPage() {
                 <th className="p-4 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
+            <tbody className="divide-y divide-surface-container text-body-sm">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-slate-500">
+                  <td colSpan={7} className="p-12 text-center text-on-surface-variant">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <RefreshCw className="w-6 h-6 animate-spin text-primary" />
                       <span className="font-bold">Memuat daftar akun pengguna...</span>
@@ -514,23 +508,23 @@ export default function ManajemenAkunPage() {
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-slate-500">
-                    <p className="font-bold text-base text-slate-800">Tidak ada akun ditemukan</p>
-                    <p className="text-xs mt-1">Coba ubah kata kunci pencarian atau filter role.</p>
+                  <td colSpan={7} className="p-12 text-center text-on-surface-variant">
+                    <p className="font-bold text-headline-sm text-on-surface">Tidak ada akun ditemukan</p>
+                    <p className="text-body-sm mt-1">Coba ubah kata kunci pencarian atau filter role.</p>
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => {
                   const roleBadge = 
-                    u.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200'
-                    : u.role === 'guru' ? 'bg-amber-100 text-amber-700 border-amber-200'
-                    : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                    u.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-300'
+                    : u.role === 'guru' ? 'bg-amber-100 text-amber-700 border-amber-300'
+                    : 'bg-emerald-100 text-emerald-700 border-emerald-300';
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={u.id} className="hover:bg-surface-container-lowest/60 transition-colors">
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 ${
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-label-sm text-white shrink-0 ${
                             u.role === 'admin' ? 'bg-purple-600'
                             : u.role === 'guru' ? 'bg-amber-600'
                             : 'bg-emerald-600'
@@ -538,30 +532,30 @@ export default function ManajemenAkunPage() {
                             {u.full_name?.charAt(0).toUpperCase() || 'U'}
                           </div>
                           <div>
-                            <div className="font-bold text-slate-900">{u.full_name || '-'}</div>
-                            <div className="text-xs text-slate-500">
+                            <div className="font-bold text-on-surface">{u.full_name || '-'}</div>
+                            <div className="text-body-xs text-on-surface-variant">
                               {u.teacher_id ? 'Guru Terhubung' : u.student_id ? 'Murid Terhubung' : 'Akun Standalone'}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className="font-mono bg-slate-100 px-2.5 py-1 rounded-md text-xs font-semibold text-slate-800 border border-slate-200">
+                        <span className="font-mono bg-surface-container-high px-2.5 py-1 rounded-md text-body-xs font-semibold text-on-surface">
                           {u.identifier || '-'}
                         </span>
                       </td>
-                      <td className="p-4 font-mono text-xs text-slate-600">
+                      <td className="p-4 font-mono text-body-xs text-on-surface-variant">
                         {u.email}
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${roleBadge} uppercase`}>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-label-xs font-bold border ${roleBadge} uppercase`}>
                           {u.role === 'admin' && <Shield className="w-3 h-3" />}
                           {u.role === 'guru' && <BookOpen className="w-3 h-3" />}
                           {u.role === 'murid' && <GraduationCap className="w-3 h-3" />}
                           {u.role}
                         </span>
                       </td>
-                      <td className="p-4 text-xs text-slate-600">
+                      <td className="p-4 text-body-sm text-on-surface-variant">
                         {u.phone !== '-' ? (
                           <button 
                             onClick={() => sendWhatsAppInfo(u)}
@@ -572,10 +566,10 @@ export default function ManajemenAkunPage() {
                             {u.phone}
                           </button>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <span className="text-outline">-</span>
                         )}
                       </td>
-                      <td className="p-4 text-xs text-slate-500">
+                      <td className="p-4 text-body-xs text-on-surface-variant">
                         {u.last_sign_in_at 
                           ? new Date(u.last_sign_in_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
                           : 'Belum pernah login'}
@@ -584,7 +578,7 @@ export default function ManajemenAkunPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => copyCredentials(u)}
-                            className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-primary transition-colors"
+                            className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors"
                             title="Salin Kredensial Akun"
                           >
                             {copiedId === u.id ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
@@ -595,7 +589,7 @@ export default function ManajemenAkunPage() {
                               setNewPassword('password');
                               setIsResetModalOpen(true);
                             }}
-                            className="p-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 transition-colors"
+                            className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-amber-600 transition-colors"
                             title="Reset Password"
                           >
                             <RotateCcw className="w-4 h-4" />
@@ -605,7 +599,7 @@ export default function ManajemenAkunPage() {
                               setSelectedUser(u);
                               setIsDeleteModalOpen(true);
                             }}
-                            className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors"
+                            className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-error transition-colors"
                             title="Hapus Akun"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -621,110 +615,114 @@ export default function ManajemenAkunPage() {
         </div>
       </div>
 
-      {/* PORTAL MODAL: Reset Password (Rendered directly into document.body to avoid stacking issues) */}
-      {mounted && isResetModalOpen && selectedUser && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto">
-          <div className="relative bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-150">
+      {/* MODAL: Reset Password (Matching admin/guru and admin/murid modal standard) */}
+      {isResetModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
+              <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
                 <RotateCcw className="w-5 h-5 text-amber-600" />
                 Reset Password Akun
               </h3>
               <button 
+                disabled={actionLoading}
                 type="button"
-                onClick={() => setIsResetModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                onClick={() => setIsResetModalOpen(false)} 
+                className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5"/>
               </button>
             </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleResetPassword} className="p-5 space-y-4 overflow-y-auto max-h-[75dvh]">
-              {/* Target User Info Card */}
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Akun Pengguna:</p>
-                <p className="font-bold text-slate-900 text-sm sm:text-base">{selectedUser.full_name}</p>
-                <div className="flex items-center gap-2 pt-1 flex-wrap">
-                  <span className="font-mono text-xs text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                    {selectedUser.identifier || selectedUser.email}
-                  </span>
-                  <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                    {selectedUser.role}
-                  </span>
+            {/* Modal Form */}
+            <form onSubmit={handleResetPassword} className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4 max-h-[70vh]">
+                {/* Target User Info */}
+                <div className="bg-surface-container-low p-4 rounded-xl space-y-1 border border-outline-variant/40">
+                  <p className="text-label-xs font-bold text-on-surface-variant uppercase">Akun Pengguna:</p>
+                  <p className="font-bold text-on-surface text-body-md">{selectedUser.full_name}</p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="font-mono text-body-xs text-on-surface bg-surface px-2 py-0.5 rounded border border-outline-variant">
+                      {selectedUser.identifier || selectedUser.email}
+                    </span>
+                    <span className="text-label-xs uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
+                      {selectedUser.role}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* New Password Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">Password Baru</label>
-                <div className="relative">
-                  <input
-                    type={showResetPassword ? "text" : "password"}
-                    required
-                    placeholder="Masukkan password baru..."
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-600 pr-10 font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowResetPassword(!showResetPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
-                  >
-                    {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Quick Preset Buttons */}
-              <div className="space-y-1.5">
-                <span className="text-xs text-slate-500 block font-medium">Pilihan Preset Cepat:</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setNewPassword('password')}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 border border-slate-200 transition-colors active:scale-95"
-                  >
-                    password
-                  </button>
-                  {selectedUser.identifier && selectedUser.identifier !== '-' && (
+                {/* New Password Input */}
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Password Baru</label>
+                  <div className="relative">
+                    <input
+                      type={showResetPassword ? "text" : "password"}
+                      required
+                      placeholder="Masukkan password baru..."
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface pr-11 font-mono text-body-md"
+                    />
                     <button
                       type="button"
-                      onClick={() => setNewPassword(selectedUser.identifier)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 border border-slate-200 transition-colors active:scale-95"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
                     >
-                      {selectedUser.identifier}
+                      {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setNewPassword('123456')}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 border border-slate-200 transition-colors active:scale-95"
-                  >
-                    123456
-                  </button>
+                  </div>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="space-y-1.5">
+                  <span className="text-body-xs text-on-surface-variant block font-medium">Preset Cepat:</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setNewPassword('password')}
+                      className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant transition-colors"
+                    >
+                      password
+                    </button>
+                    {selectedUser.identifier && selectedUser.identifier !== '-' && (
+                      <button
+                        type="button"
+                        onClick={() => setNewPassword(selectedUser.identifier)}
+                        className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant transition-colors"
+                      >
+                        {selectedUser.identifier}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setNewPassword('123456')}
+                      className="px-3 py-1.5 bg-surface-container hover:bg-surface-container-high rounded-lg text-label-xs font-bold font-mono text-on-surface border border-outline-variant transition-colors"
+                    >
+                      123456
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+              <div className="p-6 border-t border-surface-container flex justify-end gap-3 bg-surface-container-lowest">
                 <button
                   type="button"
+                  disabled={actionLoading}
                   onClick={() => setIsResetModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-colors"
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2.5 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-bold shadow-md transition-all text-xs sm:text-sm disabled:opacity-50 flex items-center gap-2 active:scale-95"
+                  className="px-5 py-2.5 bg-amber-600 text-white hover:bg-amber-700 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50 flex items-center gap-2 active:scale-95"
                 >
                   {actionLoading ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Menyimpan...
                     </>
                   ) : (
@@ -734,243 +732,246 @@ export default function ManajemenAkunPage() {
               </div>
             </form>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
-      {/* PORTAL MODAL: Tambah Akun Baru */}
-      {mounted && isCreateModalOpen && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto">
-          <div className="relative bg-white w-full max-w-lg rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-150">
+      {/* MODAL: Tambah Akun Baru */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
+              <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary" />
                 Tambah Akun Baru
               </h3>
               <button 
+                disabled={actionLoading}
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                onClick={() => setIsCreateModalOpen(false)} 
+                className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5"/>
               </button>
             </div>
 
-            {/* Modal Body */}
-            <form onSubmit={handleCreateAccount} className="p-5 space-y-4 overflow-y-auto max-h-[75dvh]">
-              {/* Role Selection */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">Pilih Role Akun</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['murid', 'guru', 'admin'] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => {
+            {/* Modal Form */}
+            <form onSubmit={handleCreateAccount} className="flex-1 flex flex-col overflow-hidden">
+              <div className="p-6 overflow-y-auto space-y-4 max-h-[70vh]">
+                {/* Role Selection */}
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Pilih Role Akun</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['murid', 'guru', 'admin'] as const).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setCreateForm({
+                            ...createForm,
+                            role: r,
+                            teacher_id: '',
+                            student_id: '',
+                          });
+                        }}
+                        className={`py-3 px-2 rounded-xl border text-center font-bold text-label-sm capitalize transition-all ${
+                          createForm.role === r
+                            ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                            : 'border-outline hover:border-primary text-on-surface-variant'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Linking helper if murid */}
+                {createForm.role === 'murid' && unlinkedStudents.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-label-md font-bold text-on-surface">Hubungkan ke Data Murid (Opsional)</label>
+                    <select
+                      value={createForm.student_id}
+                      onChange={(e) => {
+                        const sId = e.target.value;
+                        const st = unlinkedStudents.find(s => s.id === sId);
                         setCreateForm({
                           ...createForm,
-                          role: r,
-                          teacher_id: '',
-                          student_id: '',
+                          student_id: sId,
+                          full_name: st?.full_name || createForm.full_name,
+                          email: st?.nis ? `${st.nis.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com` : createForm.email,
                         });
                       }}
-                      className={`py-2.5 px-2 rounded-xl border text-center font-bold text-xs sm:text-sm capitalize transition-all ${
-                        createForm.role === r
-                          ? 'border-primary bg-primary/10 text-primary shadow-sm ring-1 ring-primary'
-                          : 'border-slate-200 hover:border-primary text-slate-600'
-                      }`}
+                      className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface"
                     >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                      <option value="">-- Buat akun murid bebas / belum terhubung --</option>
+                      {unlinkedStudents.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.nis} - {s.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {/* Linking helper if murid */}
-              {createForm.role === 'murid' && unlinkedStudents.length > 0 && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Hubungkan ke Data Murid (Opsional)</label>
-                  <select
-                    value={createForm.student_id}
-                    onChange={(e) => {
-                      const sId = e.target.value;
-                      const st = unlinkedStudents.find(s => s.id === sId);
-                      setCreateForm({
-                        ...createForm,
-                        student_id: sId,
-                        full_name: st?.full_name || createForm.full_name,
-                        email: st?.nis ? `${st.nis.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com` : createForm.email,
-                      });
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-primary"
-                  >
-                    <option value="">-- Buat akun murid bebas / belum terhubung --</option>
-                    {unlinkedStudents.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nis} - {s.full_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+                {/* Linking helper if guru */}
+                {createForm.role === 'guru' && unlinkedTeachers.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-label-md font-bold text-on-surface">Hubungkan ke Data Guru (Opsional)</label>
+                    <select
+                      value={createForm.teacher_id}
+                      onChange={(e) => {
+                        const tId = e.target.value;
+                        const tch = unlinkedTeachers.find(t => t.id === tId);
+                        setCreateForm({
+                          ...createForm,
+                          teacher_id: tId,
+                          full_name: tch?.full_name || createForm.full_name,
+                          email: tch?.nip ? `${tch.nip.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com` : createForm.email,
+                        });
+                      }}
+                      className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface"
+                    >
+                      <option value="">-- Buat akun guru bebas / belum terhubung --</option>
+                      {unlinkedTeachers.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nip || 'No-NIP'} - {t.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              {/* Linking helper if guru */}
-              {createForm.role === 'guru' && unlinkedTeachers.length > 0 && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase">Hubungkan ke Data Guru (Opsional)</label>
-                  <select
-                    value={createForm.teacher_id}
-                    onChange={(e) => {
-                      const tId = e.target.value;
-                      const tch = unlinkedTeachers.find(t => t.id === tId);
-                      setCreateForm({
-                        ...createForm,
-                        teacher_id: tId,
-                        full_name: tch?.full_name || createForm.full_name,
-                        email: tch?.nip ? `${tch.nip.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com` : createForm.email,
-                      });
-                    }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-primary"
-                  >
-                    <option value="">-- Buat akun guru bebas / belum terhubung --</option>
-                    {unlinkedTeachers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nip || 'No-NIP'} - {t.full_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Nama Lengkap */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">Nama Lengkap</label>
-                <input
-                  type="text"
-                  placeholder="Masukkan nama lengkap..."
-                  value={createForm.full_name}
-                  onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-primary"
-                />
-              </div>
-
-              {/* Email / Username */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">Username / Email Login</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. AHE260010 atau email@domain.com"
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-primary font-mono"
-                />
-                <p className="text-[11px] text-slate-500">Jika tanpa @ domain, otomatis ditambahkan @ahe.com</p>
-              </div>
-
-              {/* Password */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700 uppercase">Password</label>
-                <div className="relative">
+                {/* Nama Lengkap */}
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Nama Lengkap</label>
                   <input
-                    type={showCreatePassword ? "text" : "password"}
-                    required
-                    value={createForm.password}
-                    onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-xs sm:text-sm focus:outline-none focus:border-primary pr-10 font-mono"
+                    type="text"
+                    placeholder="Masukkan nama lengkap..."
+                    value={createForm.full_name}
+                    onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })}
+                    className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCreatePassword(!showCreatePassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
-                  >
-                    {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                </div>
+
+                {/* Email / Username */}
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Username / Email Login</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. AHE260010 atau email@domain.com"
+                    value={createForm.email}
+                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+                    className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface font-mono"
+                  />
+                  <p className="text-body-xs text-on-surface-variant">Jika tanpa @ domain, otomatis ditambahkan @ahe.com</p>
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <label className="text-label-md font-bold text-on-surface">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? "text" : "password"}
+                      required
+                      value={createForm.password}
+                      onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-outline focus:border-secondary focus:ring-1 focus:ring-secondary outline-none bg-surface text-on-surface pr-11 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface p-1"
+                    >
+                      {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+              <div className="p-6 border-t border-surface-container flex justify-end gap-3 bg-surface-container-lowest">
                 <button
                   type="button"
+                  disabled={actionLoading}
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs sm:text-sm"
+                  className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2.5 bg-primary text-white hover:bg-primary/90 rounded-xl font-bold shadow-md transition-all text-xs sm:text-sm disabled:opacity-50 active:scale-95"
+                  className="px-5 py-2.5 bg-primary text-on-primary hover:bg-primary/90 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50"
                 >
                   {actionLoading ? 'Menyimpan...' : 'Buat Akun'}
                 </button>
               </div>
             </form>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
 
-      {/* PORTAL MODAL: Hapus Akun */}
-      {mounted && isDeleteModalOpen && selectedUser && createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm overflow-y-auto">
-          <div className="relative bg-white w-full max-w-md rounded-2xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col my-auto animate-in fade-in zoom-in-95 duration-150">
+      {/* MODAL: Hapus Akun */}
+      {isDeleteModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
             {/* Modal Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 sticky top-0 z-10">
-              <h3 className="text-base sm:text-lg font-bold text-rose-600 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-rose-600" />
+            <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
+              <h3 className="text-headline-sm font-headline-sm text-error flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-error" />
                 Hapus Akun Pengguna
               </h3>
               <button 
+                disabled={actionLoading}
                 type="button"
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                onClick={() => setIsDeleteModalOpen(false)} 
+                className="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5"/>
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 space-y-4 overflow-y-auto max-h-[75dvh]">
-              <p className="text-xs sm:text-sm text-slate-700">
+            <div className="p-6 space-y-4">
+              <p className="text-body-md text-on-surface">
                 Apakah Anda yakin ingin menghapus akun login untuk <strong className="text-primary">{selectedUser.full_name}</strong> ({selectedUser.email})?
               </p>
-              <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 p-3 rounded-xl space-y-1">
+              <div className="text-body-xs text-error bg-error-container/40 border border-error-container p-3.5 rounded-xl space-y-1">
                 <p className="font-bold">Perhatian:</p>
                 <p>Akun ini tidak akan dapat login lagi ke portal. Data murid / guru di sistem akan tetap tersimpan dan status tautan akun dilepas.</p>
               </div>
+            </div>
 
-              {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsDeleteModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 font-bold text-xs sm:text-sm transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={actionLoading}
-                  className="px-4 py-2.5 bg-rose-600 text-white hover:bg-rose-700 rounded-xl font-bold shadow-md transition-all text-xs sm:text-sm disabled:opacity-50 flex items-center gap-2 active:scale-95"
-                >
-                  {actionLoading ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Menghapus...
-                    </>
-                  ) : (
-                    'Ya, Hapus Akun'
-                  )}
-                </button>
-              </div>
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-surface-container flex justify-end gap-3 bg-surface-container-lowest">
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface-container font-bold text-label-sm transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={actionLoading}
+                className="px-5 py-2.5 bg-error text-white hover:bg-error/90 rounded-xl font-bold shadow-md transition-all text-label-sm disabled:opacity-50 flex items-center gap-2 active:scale-95"
+              >
+                {actionLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Menghapus...
+                  </>
+                ) : (
+                  'Ya, Hapus Akun'
+                )}
+              </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );
