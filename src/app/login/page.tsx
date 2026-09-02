@@ -17,7 +17,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim()) {
-      toast.error("Silakan masukkan email, NIS, NIP, atau username Anda.");
+      toast.error("Silakan masukkan email, NIS, NIP, nama, atau username Anda.");
       return;
     }
     if (!password) {
@@ -30,7 +30,7 @@ export default function LoginPage() {
     try {
       let emailToAuth = identifier.trim();
 
-      // Resolve identifier (Email, NIS, NIP, Username) dynamically via RPC
+      // Resolve identifier (Email, NIS, NIP, Nama, WA, Username) dynamically via RPC
       try {
         const { data: resolvedEmail, error: rpcError } = await supabase.rpc('resolve_login_identifier' as any, {
           p_identifier: identifier.trim()
@@ -39,11 +39,11 @@ export default function LoginPage() {
         if (!rpcError && resolvedEmail) {
           emailToAuth = resolvedEmail as string;
         } else if (!emailToAuth.includes("@")) {
-          emailToAuth = `${emailToAuth.toLowerCase()}@ahe.com`;
+          emailToAuth = `${emailToAuth.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com`;
         }
       } catch (rpcErr) {
         if (!emailToAuth.includes("@")) {
-          emailToAuth = `${emailToAuth.toLowerCase()}@ahe.com`;
+          emailToAuth = `${emailToAuth.toLowerCase().replace(/[^a-z0-9]/g, '')}@ahe.com`;
         }
       }
 
@@ -55,12 +55,22 @@ export default function LoginPage() {
 
       if (error) {
         if (error.message === "Invalid login credentials") {
-          toast.error("Username/NIS/NIP atau password salah. Silakan periksa kembali.");
+          toast.error("NIS/Username atau Password tidak sesuai. (Password default akun adalah: password)");
         } else {
           toast.error(error.message);
         }
       } else if (data.session) {
         toast.success("Berhasil masuk ke portal!");
+        
+        // Fetch role directly for fast redirect
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.session.user.id)
+          .single();
+
+        const targetRole = profile?.role || 'murid';
+        router.push(`/${targetRole}/dashboard`);
       }
     } catch (error: any) {
       console.error("Login exception:", error);
@@ -105,7 +115,7 @@ export default function LoginPage() {
                 </label>
                 <input 
                   className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface placeholder:text-outline" 
-                  placeholder="Masukkan email, NIS, NIP, atau username" 
+                  placeholder="Contoh: AHE260057 atau email@ahe.com" 
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
@@ -122,7 +132,7 @@ export default function LoginPage() {
                 </div>
                 <div className="relative">
                   <input 
-                    className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface pr-11 placeholder:text-outline" 
+                    className="w-full px-4 py-3 rounded-xl border border-outline-variant focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all font-body-md bg-surface-container-lowest text-on-surface pr-11 placeholder:text-outline font-mono" 
                     placeholder="Masukkan password Anda" 
                     type={showPassword ? "text" : "password"}
                     value={password}
@@ -144,7 +154,7 @@ export default function LoginPage() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-headline-sm text-headline-sm hover:bg-primary/90 shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:active:scale-100"
+                className="w-full bg-primary text-on-primary py-3.5 rounded-xl font-headline-sm text-headline-sm hover:bg-primary/90 shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-70 disabled:active:scale-100 cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
