@@ -615,10 +615,10 @@ export default function ManajemenAkunPage() {
         </div>
       </div>
 
-      {/* MODAL: Reset Password (Matching admin/guru and admin/murid modal standard) */}
+      {/* MODAL: Reset Password (Rock-solid width and styling, no transform glitch) */}
       {isResetModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
-          <div className="relative bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-md min-w-[300px] sm:min-w-[440px] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-outline-variant">
             {/* Modal Header */}
             <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
@@ -737,8 +737,8 @@ export default function ManajemenAkunPage() {
 
       {/* MODAL: Tambah Akun Baru */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
-          <div className="relative bg-surface w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-lg min-w-[300px] sm:min-w-[480px] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-outline-variant">
             {/* Modal Header */}
             <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-on-surface flex items-center gap-2">
@@ -915,8 +915,8 @@ export default function ManajemenAkunPage() {
 
       {/* MODAL: Hapus Akun */}
       {isDeleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 bg-on-background/60 backdrop-blur-sm">
-          <div className="relative bg-surface w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-outline-variant">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-on-background/60 backdrop-blur-sm">
+          <div className="relative bg-surface w-full max-w-md min-w-[300px] sm:min-w-[440px] rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-outline-variant">
             {/* Modal Header */}
             <div className="p-6 border-b border-surface-container flex justify-between items-center bg-surface-container-lowest">
               <h3 className="text-headline-sm font-headline-sm text-error flex items-center gap-2">
