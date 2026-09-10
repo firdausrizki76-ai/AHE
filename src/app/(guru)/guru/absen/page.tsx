@@ -5,7 +5,7 @@ import { useAuthStore } from "@/lib/store";
 import { Users, User, CheckCircle, XCircle, Clock, Star, Loader2, Save, LogIn, LogOut, QrCode, Camera, BarChart3, History, Printer, Filter, Calendar, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
-import { getLocalDateString, getLocalMonthString, formatDateIndo } from "@/lib/dateUtils";
+import { getLocalDateString, getLocalMonthString, formatDateIndo, getLastDayOfMonth } from "@/lib/dateUtils";
 import BarcodeCardModal from "@/components/attendance/BarcodeCardModal";
 import BarcodeScannerModal from "@/components/attendance/BarcodeScannerModal";
 
@@ -156,7 +156,7 @@ export default function GuruAbsenPage() {
     setRekapLoading(true);
     try {
       const startDay = `${rekapMonth}-01`;
-      const endDay = `${rekapMonth}-31`;
+      const endDay = getLastDayOfMonth(rekapMonth);
       const { data: sAtt, error: sErr } = await supabase
         .from("student_attendance")
         .select("*")

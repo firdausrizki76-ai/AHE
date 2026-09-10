@@ -91,3 +91,12 @@ export function formatDateTimeIndo(
     minute: '2-digit'
   });
 }
+
+/**
+ * Returns the last date string of a month "YYYY-MM-DD" accurately (handles 28, 29, 30, 31 days)
+ */
+export function getLastDayOfMonth(yearMonth: string): string {
+  const [y, m] = yearMonth.split("-").map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return `${yearMonth}-${pad(lastDay)}`;
+}
