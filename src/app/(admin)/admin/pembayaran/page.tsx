@@ -5,7 +5,8 @@ import {
   Wallet, Search, CheckCircle, XCircle, FileText, Plus, ArrowUpRight, X, 
   AlertCircle, Loader2, History, Printer, Filter, Calendar, CreditCard, 
   RefreshCw, Edit2, Trash2, Tag, Layers, Check, Settings2, MessageCircle, 
-  Send, Copy, Users, CalendarPlus, Sparkles, CheckSquare, Square
+  Send, Copy, Users, CalendarPlus, Sparkles, CheckSquare, Square,
+  ChevronLeft, ChevronRight, TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
@@ -173,7 +174,7 @@ export default function PembayaranPage() {
   // Filter Tagihan state
   const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'paid' | 'overdue'>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [monthFilter, setMonthFilter] = useState<string>('all');
+  const [monthFilter, setMonthFilter] = useState<string>(() => getLocalMonthString());
 
   // History / Riwayat Pembayaran state
   const [historyTransactions, setHistoryTransactions] = useState<any[]>([]);
@@ -344,7 +345,8 @@ export default function PembayaranPage() {
                           statusFilter === "overdue" ? isOverdue :
                           b.status === statusFilter;
       const matchType = typeFilter === "all" || b.payment_type_id === typeFilter;
-      const matchMonth = !monthFilter || monthFilter === "all" || (b.bill_month && b.bill_month.startsWith(monthFilter));
+      const matchMonth = !monthFilter || monthFilter === "all" || 
+        (b.bill_month ? b.bill_month.startsWith(monthFilter) : (b.created_at ? b.created_at.startsWith(monthFilter) : false));
       return matchSearch && matchStatus && matchType && matchMonth;
     });
   }, [bills, searchQuery, statusFilter, typeFilter, monthFilter]);
@@ -542,18 +544,94 @@ export default function PembayaranPage() {
     toast.success(`Mencetak kwitansi ${receiptNum}...`);
   };
 
-  // Revenue current month
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const totalRevenue = bills
-    .filter(b => {
-      if (b.status !== 'paid') return false;
-      const date = new Date(b.created_at);
-      return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-    })
-    .reduce((sum, b) => sum + Number(b.amount || 0), 0);
+  // Helper for Indonesian Month Year Label
+  const getPeriodLabel = (period: string) => {
+    if (!period || period === "all") return "Semua Periode";
+    const [y, m] = period.split("-");
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const monthIdx = parseInt(m, 10) - 1;
+    if (monthNames[monthIdx]) {
+      return `${monthNames[monthIdx]} ${y}`;
+    }
+    return period;
+  };
 
-  const pendingCount = bills.filter(b => b.status === 'unpaid').length;
+  // Quick Period Navigation Handlers
+  const handlePrevMonth = () => {
+    const current = (!monthFilter || monthFilter === "all") ? getLocalMonthString() : monthFilter;
+    const [y, m] = current.split("-").map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    setMonthFilter(getLocalMonthString(prevDate));
+  };
+
+  const handleNextMonth = () => {
+    const current = (!monthFilter || monthFilter === "all") ? getLocalMonthString() : monthFilter;
+    const [y, m] = current.split("-").map(Number);
+    const nextDate = new Date(y, m, 1);
+    setMonthFilter(getLocalMonthString(nextDate));
+  };
+
+  const handleCurrentMonth = () => {
+    setMonthFilter(getLocalMonthString());
+  };
+
+  const handleAllMonths = () => {
+    setMonthFilter("all");
+  };
+
+  // Filter bills based on selected period / month for statistics
+  const periodBills = useMemo(() => {
+    if (!monthFilter || monthFilter === "all") {
+      return bills;
+    }
+    return bills.filter(b => {
+      if (b.bill_month) return b.bill_month.startsWith(monthFilter);
+      if (b.created_at) return b.created_at.startsWith(monthFilter);
+      return false;
+    });
+  }, [bills, monthFilter]);
+
+  // Statistics per periode / per bulan: Saldo Pemasukan & Saldo Tagihan
+  const paymentStats = useMemo(() => {
+    let saldoPemasukan = 0;
+    let saldoTagihan = 0;
+    let paidCount = 0;
+    let unpaidCount = 0;
+    let overdueCount = 0;
+    const now = new Date();
+
+    periodBills.forEach(b => {
+      const amt = Number(b.amount || 0);
+      if (b.status === "paid") {
+        saldoPemasukan += amt;
+        paidCount++;
+      } else {
+        saldoTagihan += amt;
+        unpaidCount++;
+        if (b.due_date && new Date(b.due_date) < now) {
+          overdueCount++;
+        }
+      }
+    });
+
+    const totalTagihan = saldoPemasukan + saldoTagihan;
+    const totalCount = paidCount + unpaidCount;
+    const paidPercentage = totalTagihan > 0 ? Math.round((saldoPemasukan / totalTagihan) * 100) : 0;
+
+    return {
+      saldoPemasukan,
+      saldoTagihan,
+      totalTagihan,
+      paidCount,
+      unpaidCount,
+      overdueCount,
+      totalCount,
+      paidPercentage
+    };
+  }, [periodBills]);
 
   // Format Helper for WhatsApp Messages (Dynamic from waTemplates)
   const generateWhatsAppMessage = (bill: any, type: 'reminder' | 'receipt') => {
@@ -1332,33 +1410,221 @@ export default function PembayaranPage() {
 
       {viewMode === "tagihan" && (
         <>
-          {/* Stats Bento */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant flex items-center gap-4">
-              <div className="p-4 bg-tertiary-container text-on-tertiary-container rounded-xl">
-                <ArrowUpRight className="w-8 h-8" />
+          {/* Period Selector Bar */}
+          <div className="bg-surface p-4 rounded-2xl shadow-sm border border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
+                <Calendar className="w-5 h-5" />
               </div>
-              {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              ) : (
-                <div>
-                  <p className="text-label-md text-on-surface-variant">Pemasukan Bulan Ini</p>
-                  <h3 className="text-display-sm font-headline-lg text-on-surface">Rp {totalRevenue.toLocaleString('id-ID')}</h3>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Periode Pembayaran</span>
+                  {monthFilter === getLocalMonthString() && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+                      Bulan Ini
+                    </span>
+                  )}
                 </div>
+                <h3 className="text-base font-headline-sm text-on-surface font-bold">
+                  {getPeriodLabel(monthFilter)}
+                </h3>
+              </div>
+            </div>
+
+            {/* Quick Period Controls */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-2 rounded-xl border border-outline-variant hover:bg-surface-container text-on-surface transition-colors cursor-pointer"
+                title="Bulan Sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <input
+                type="month"
+                value={monthFilter === "all" ? "" : monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value || "all")}
+                className="px-3 py-1.5 rounded-xl border border-outline-variant bg-surface text-xs font-bold text-on-surface focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer"
+              />
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-2 rounded-xl border border-outline-variant hover:bg-surface-container text-on-surface transition-colors cursor-pointer"
+                title="Bulan Selanjutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              {monthFilter !== getLocalMonthString() && (
+                <button
+                  type="button"
+                  onClick={handleCurrentMonth}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                >
+                  Bulan Ini
+                </button>
+              )}
+              {monthFilter !== "all" ? (
+                <button
+                  type="button"
+                  onClick={handleAllMonths}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+                >
+                  Semua Periode
+                </button>
+              ) : (
+                <span className="text-xs font-bold px-3 py-1.5 bg-surface-container text-on-surface rounded-xl">
+                  Semua Periode
+                </span>
               )}
             </div>
-            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant flex items-center gap-4">
-              <div className="p-4 bg-error-container text-on-error-container rounded-xl">
-                <XCircle className="w-8 h-8" />
+          </div>
+
+          {/* Stats Bento */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Saldo Pemasukan */}
+            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant hover:shadow-md transition-all flex flex-col justify-between gap-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
+                    <TrendingUp className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Pemasukan Diterima</span>
+                    <h4 className="text-base font-bold text-on-surface">Saldo Pemasukan</h4>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full max-w-[120px] truncate">
+                  {getPeriodLabel(monthFilter)}
+                </span>
               </div>
+
               {loading ? (
-                <Loader2 className="w-6 h-6 animate-spin text-error" />
+                <div className="flex items-center gap-2 py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                  <span className="text-sm font-medium text-on-surface-variant">Memuat saldo...</span>
+                </div>
               ) : (
                 <div>
-                  <p className="text-label-md text-on-surface-variant">Menunggu Pembayaran</p>
-                  <h3 className="text-display-sm font-headline-lg text-on-surface">{pendingCount} Tagihan</h3>
+                  <h3 className="text-headline-lg lg:text-display-sm font-headline-lg text-emerald-700">
+                    Rp {paymentStats.saldoPemasukan.toLocaleString('id-ID')}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
+                      <CheckCircle className="w-3.5 h-3.5" /> {paymentStats.paidCount} Tagihan Lunas
+                    </span>
+                    <span>•</span>
+                    <span>{paymentStats.paidPercentage}% Tertagih</span>
+                  </div>
                 </div>
               )}
+
+              <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, paymentStats.paidPercentage)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Saldo Tagihan */}
+            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant hover:shadow-md transition-all flex flex-col justify-between gap-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-amber-700">Piutang Belum Lunas</span>
+                    <h4 className="text-base font-bold text-on-surface">Saldo Tagihan</h4>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full max-w-[120px] truncate">
+                  {getPeriodLabel(monthFilter)}
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center gap-2 py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+                  <span className="text-sm font-medium text-on-surface-variant">Memuat saldo...</span>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-headline-lg lg:text-display-sm font-headline-lg text-amber-800">
+                    Rp {paymentStats.saldoTagihan.toLocaleString('id-ID')}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                    <span className="inline-flex items-center gap-1 font-bold text-amber-700">
+                      <XCircle className="w-3.5 h-3.5" /> {paymentStats.unpaidCount} Tagihan Belum Bayar
+                    </span>
+                    {paymentStats.overdueCount > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="inline-flex items-center gap-1 font-bold text-error">
+                          <AlertCircle className="w-3.5 h-3.5" /> {paymentStats.overdueCount} Jatuh Tempo
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+                <div 
+                  className="bg-amber-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min(100, 100 - paymentStats.paidPercentage)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Total Tagihan Periode */}
+            <div className="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant hover:shadow-md transition-all flex flex-col justify-between gap-4 sm:col-span-2 lg:col-span-1">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-primary-container/20 text-primary rounded-xl">
+                    <Wallet className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-primary">Total Tertagih</span>
+                    <h4 className="text-base font-bold text-on-surface">Total Tagihan</h4>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-2.5 py-1 bg-primary/10 text-primary rounded-full">
+                  {paymentStats.paidPercentage}% Lunas
+                </span>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center gap-2 py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <span className="text-sm font-medium text-on-surface-variant">Memuat total...</span>
+                </div>
+              ) : (
+                <div>
+                  <h3 className="text-headline-lg lg:text-display-sm font-headline-lg text-on-surface">
+                    Rp {paymentStats.totalTagihan.toLocaleString('id-ID')}
+                  </h3>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant font-medium">
+                    <span className="font-bold text-on-surface">{paymentStats.totalCount} Total Tagihan</span>
+                    <span>•</span>
+                    <span>Sisa tagihan: Rp {paymentStats.saldoTagihan.toLocaleString('id-ID')}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full bg-surface-container h-2 rounded-full overflow-hidden flex">
+                <div 
+                  className="bg-emerald-600 h-full transition-all duration-500" 
+                  style={{ width: `${paymentStats.paidPercentage}%` }}
+                  title={`Lunas: ${paymentStats.paidPercentage}%`}
+                />
+                <div 
+                  className="bg-amber-500 h-full transition-all duration-500" 
+                  style={{ width: `${100 - paymentStats.paidPercentage}%` }}
+                  title={`Belum Lunas: ${100 - paymentStats.paidPercentage}%`}
+                />
+              </div>
             </div>
           </div>
 
@@ -1366,7 +1632,9 @@ export default function PembayaranPage() {
             {/* Advanced Filter Toolbar for Tagihan */}
             <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex flex-col lg:flex-row justify-between gap-4 items-start lg:items-center">
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                <h3 className="text-base font-bold text-on-surface mr-2">Daftar Tagihan & Status</h3>
+                <h3 className="text-base font-bold text-on-surface mr-2">
+                  Daftar Tagihan ({filteredBills.length})
+                </h3>
                 
                 {/* Status Filter */}
                 <div className="flex items-center gap-1 bg-surface px-3 py-1.5 rounded-xl border border-outline-variant">
@@ -1642,13 +1910,18 @@ export default function PembayaranPage() {
 
           {/* Table Riwayat Pembayaran */}
           <div className="bg-surface rounded-2xl shadow-sm border border-outline-variant overflow-hidden">
-            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex justify-between items-center">
+            <div className="p-4 border-b border-surface-container bg-surface-container-lowest flex flex-wrap justify-between items-center gap-2">
               <h3 className="text-base font-bold text-on-surface">
                 Riwayat Transaksi Pembayaran
               </h3>
-              <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
-                {filteredHistoryTransactions.length} Transaksi
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                  Total Pemasukan: Rp {filteredHistoryTransactions.reduce((sum, tx) => sum + Number(tx.amount || 0), 0).toLocaleString('id-ID')}
+                </span>
+                <span className="text-xs font-bold px-3 py-1 bg-primary/10 text-primary rounded-full">
+                  {filteredHistoryTransactions.length} Transaksi
+                </span>
+              </div>
             </div>
 
             {historyLoading ? (
